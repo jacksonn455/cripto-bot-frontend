@@ -143,6 +143,15 @@ export function useHealth() {
   });
 }
 
+/** Whether the OpenAI agents are enabled/configured; changes only on backend restart. */
+export function useAiStatus() {
+  return useQuery({
+    queryKey: ["ai", "status"],
+    queryFn: ({ signal }) => api.ai.status(signal),
+    staleTime: 5 * 60_000,
+  });
+}
+
 /** Strategy parameters and what the live loop runs; changes only on backend restart. */
 export function useStrategies() {
   return useQuery({

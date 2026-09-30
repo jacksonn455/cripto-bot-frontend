@@ -25,8 +25,10 @@ const ALLOWED_GET = [
   /^health$/,
   /^signals$/,
   /^strategies$/,
+  /^ai\/status$/,
 ];
-const ALLOWED_POST = [/^bot\/(pause|resume|kill-switch)$/, /^backtest\/run$/];
+const AI_RUN = /^ai\/agents\/[a-z-]+\/run$/;
+const ALLOWED_POST = [/^bot\/(pause|resume|kill-switch)$/, /^backtest\/run$/, AI_RUN];
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 // A backtest fetches historical candles and simulates the whole period synchronously.
@@ -72,7 +74,8 @@ async function proxy(request: NextRequest, ctx: Ctx, allowed: RegExp[]) {
     ? request.signal
     : AbortSignal.any([
         request.signal,
-        AbortSignal.timeout(path === "backtest/run" ? BACKTEST_TIMEOUT_MS : DEFAULT_TIMEOUT_MS),
+        // Backtests and agent runs legitimately take minutes; the backend enforces its own limits too.
+        AbortSignal.timeout(path === "backtest/run" || AI_RUN.test(path) ? BACKTEST_TIMEOUT_MS : DEFAULT_TIMEOUT_MS),
       ]);
 
   let upstream: Response;

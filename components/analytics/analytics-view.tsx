@@ -15,6 +15,7 @@ import { BreakdownCharts } from "./breakdown-charts";
 import { DistributionCharts } from "./distribution-charts";
 import { MetricsGrid } from "./metrics-grid";
 import { ModeComparison } from "./mode-comparison";
+import { SideComparison } from "./side-comparison";
 import { PeriodPicker, type AnalyticsPeriod } from "./period-picker";
 import { ALL_RUNS, RunSelect } from "./run-select";
 
@@ -92,6 +93,7 @@ export function AnalyticsView() {
           {(s) => (
             <div className="space-y-6">
               <MetricsGrid summary={s} />
+              <SideComparison summary={s} />
               <BreakdownCharts filter={filter} />
               <DistributionCharts summary={s} />
             </div>

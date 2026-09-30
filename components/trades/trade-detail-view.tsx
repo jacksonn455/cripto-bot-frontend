@@ -114,6 +114,7 @@ function TradeDetail({ trade }: { trade: Trade }) {
           <CardContent>
             <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-4">
               <Field label="Status">{open ? "Aberta" : "Fechada"}</Field>
+              <Field label="Lado">{trade.side === "SHORT" ? "Short (vendido)" : "Long (comprado)"}</Field>
               <Field label="PnL">{open ? <span className="text-muted-foreground">Em aberto</span> : <Pnl value={trade.pnl} />}</Field>
               <Field label="PnL %">{open ? "—" : <PnlPercent value={trade.pnlPct} />}</Field>
               <Field label="Duração">
@@ -137,6 +138,7 @@ function TradeDetail({ trade }: { trade: Trade }) {
                 {trade.maxFavorableExcursion != null ? <Pnl value={trade.maxFavorableExcursion} /> : "—"}
               </Field>
               <Field label="Estratégia">{trade.strategy}</Field>
+              {trade.timeframe && <Field label="Timeframe">{trade.timeframe}</Field>}
               {trade.runId && (
                 <Field label="Execução de backtest">
                   <code className="text-xs break-all">{trade.runId}</code>
@@ -146,6 +148,12 @@ function TradeDetail({ trade }: { trade: Trade }) {
                 <code className="text-xs break-all">{trade._id}</code>
               </Field>
             </dl>
+            {trade.entryReason && (
+              <p className="mt-4 border-t pt-3 text-sm">
+                <span className="text-xs text-muted-foreground">Motivo da entrada: </span>
+                {trade.entryReason}
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>

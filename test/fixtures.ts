@@ -193,6 +193,7 @@ export const strategiesFixture = {
         { key: "emaSlow", description: "EMA lenta (períodos)", min: 3, max: 400, integer: true, value: 50 },
         { key: "emaRegime", description: "EMA do filtro de regime (períodos)", min: 10, max: 400, integer: true, value: 200 },
         { key: "atrStopMultiplier", description: "Stop = entrada − N × ATR", min: 0.1, max: 20, integer: false, value: 2 },
+        { key: "allowShort", description: "Entradas Short (espelho das regras Long): 0 = desligado, 1 = ligado", min: 0, max: 1, integer: true, value: 0 },
       ],
     },
   ],

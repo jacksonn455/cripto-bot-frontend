@@ -2,6 +2,18 @@ import { z } from "zod";
 import { isoDate, modeSchema, objectId, opt, type Mode } from "./common";
 
 /** metrics.util.MetricsSummary — GET /reports/summary and backtest run summaries. */
+/** metrics.util.SideMetrics — the same core metrics for one direction. */
+export const sideMetricsSchema = z.object({
+  tradeCount: z.number().int(),
+  winCount: z.number().int(),
+  winRate: z.number(),
+  totalPnl: z.number(),
+  profitFactor: z.number(),
+  expectancy: z.number(),
+  avgReturnPct: z.number(),
+});
+export type SideMetrics = z.infer<typeof sideMetricsSchema>;
+
 export const metricsSummarySchema = z.object({
   tradeCount: z.number().int(),
   winCount: z.number().int(),
@@ -27,6 +39,15 @@ export const metricsSummarySchema = z.object({
   /** Missing on backtest runs with no trades saved before the backend's `minimize: false` fix. */
   exitReasonBreakdown: z.record(z.string(), z.number()).default({}),
   pnlHistogram: z.array(z.object({ bucket: z.string(), count: z.number().int() })),
+  // Added with Long/Short support; absent on older backends and on backtest runs saved before it.
+  lossRate: opt(z.number()),
+  grossProfit: opt(z.number()),
+  /** Absolute value of the summed losing trades. */
+  grossLoss: opt(z.number()),
+  totalFees: opt(z.number()),
+  longCount: opt(z.number().int()),
+  shortCount: opt(z.number().int()),
+  bySide: opt(z.object({ LONG: sideMetricsSchema, SHORT: sideMetricsSchema })),
 });
 export type MetricsSummary = z.infer<typeof metricsSummarySchema>;
 

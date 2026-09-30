@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useBacktestRun } from "@/hooks/use-data";
 import { useNow } from "@/hooks/use-now";
 import { api } from "@/lib/api/endpoints";
-import { buildBacktestInput, MAX_SYMBOLS, type BacktestFormValues } from "@/lib/backtest-form";
+import { SHORT_PARAM, buildBacktestInput, MAX_SYMBOLS, shortParamOf, type BacktestFormValues } from "@/lib/backtest-form";
 import { formatDuration, formatFraction, formatNumber } from "@/lib/format";
 import { CANDLE_INTERVALS, type Strategies } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
@@ -71,6 +71,8 @@ export function BacktestForm({ strategies }: { strategies: Strategies }) {
       feesPct: "0,1",
       slippagePct: "0,05",
       walkForwardDays: "",
+      includeShort: shortParamOf(strategies.strategies.find((s) => s.name === strategies.live.strategy)?.params)?.value === 1,
+      shortBorrowPctPerDay: "0,03",
       params: {},
     };
   });
@@ -79,7 +81,10 @@ export function BacktestForm({ strategies }: { strategies: Strategies }) {
 
   const strategy = strategies.strategies.find((s) => s.name === values.strategy);
   const params = strategy?.params ?? [];
-  const changedParams = params.filter((p) => values.params[p.key]?.trim() && Number(values.params[p.key].replace(",", ".")) !== p.value).length;
+  const shortParam = shortParamOf(params);
+  // allowShort has its own switch below; the numeric grid shows the other knobs.
+  const numericParams = params.filter((p) => p.key !== SHORT_PARAM);
+  const changedParams = numericParams.filter((p) => values.params[p.key]?.trim() && Number(values.params[p.key].replace(",", ".")) !== p.value).length;
 
   const run = useMutation({
     mutationFn: api.backtest.run,
@@ -114,7 +119,17 @@ export function BacktestForm({ strategies }: { strategies: Strategies }) {
         <form onSubmit={submit} noValidate className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Field id="strategy" label="Estratégia" error={err("strategy")}>
-              <Select value={values.strategy} onValueChange={(v) => setValues((s) => ({ ...s, strategy: v, params: {} }))}>
+              <Select
+                value={values.strategy}
+                onValueChange={(v) =>
+                  setValues((s) => ({
+                    ...s,
+                    strategy: v,
+                    params: {},
+                    includeShort: shortParamOf(strategies.strategies.find((x) => x.name === v)?.params)?.value === 1,
+                  }))
+                }
+              >
                 <SelectTrigger id="strategy" size="sm" className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {strategies.strategies.map((s) => <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>)}
@@ -176,7 +191,45 @@ export function BacktestForm({ strategies }: { strategies: Strategies }) {
             </Field>
           </div>
 
-          {params.length > 0 && (
+          {shortParam && (
+            <div className="flex flex-wrap items-start gap-4 rounded-lg border p-3">
+              <label htmlFor="includeShort" className="flex max-w-md cursor-pointer items-start gap-2 text-sm">
+                <input
+                  id="includeShort"
+                  type="checkbox"
+                  checked={values.includeShort}
+                  onChange={(e) => set("includeShort", e.target.checked)}
+                  className="mt-0.5 size-4 accent-primary"
+                />
+                <span>
+                  <span className="font-medium">Incluir Short</span>
+                  <span className="block text-xs text-muted-foreground">
+                    Espelho das regras de compra: vende a descoberto quando a tendência maior é de baixa. No bot ao vivo está{" "}
+                    {shortParam.value === 1 ? "ligado" : "desligado"}. Para medir o efeito, rode o mesmo período com e sem.
+                  </span>
+                </span>
+              </label>
+              {values.includeShort && (
+                <Field
+                  id="shortBorrowPctPerDay"
+                  label="Custo do short (% ao dia)"
+                  error={err("shortBorrowPctPerDay")}
+                  hint="Juros/funding de manter a posição vendida. 0,03% ≈ funding da Binance."
+                >
+                  <Input
+                    id="shortBorrowPctPerDay"
+                    inputMode="decimal"
+                    value={values.shortBorrowPctPerDay}
+                    onChange={(e) => set("shortBorrowPctPerDay", e.target.value)}
+                    className="h-8 w-32"
+                    {...inputProps("shortBorrowPctPerDay")}
+                  />
+                </Field>
+              )}
+            </div>
+          )}
+
+          {numericParams.length > 0 && (
             <div className="rounded-lg border">
               <button
                 type="button"
@@ -195,7 +248,7 @@ export function BacktestForm({ strategies }: { strategies: Strategies }) {
               </button>
               {showParams && (
                 <div id="bt-params" className="grid gap-4 border-t p-3 sm:grid-cols-2 lg:grid-cols-5">
-                  {params.map((p) => (
+                  {numericParams.map((p) => (
                     <Field
                       key={p.key}
                       id={`param.${p.key}`}
@@ -239,7 +292,17 @@ export function BacktestForm({ strategies }: { strategies: Strategies }) {
             <div className="space-y-3 rounded-lg border p-3" aria-live="polite">
               <p className="text-sm font-medium">Resultado</p>
               <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-                <div><dt className="text-xs text-muted-foreground">Trades</dt><dd className="tabular-nums">{run.data.tradeCount}</dd></div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Trades</dt>
+                  <dd className="tabular-nums">
+                    {run.data.tradeCount}
+                    {run.data.summary.shortCount != null && run.data.summary.shortCount > 0 && (
+                      <span className="ml-1 text-xs text-muted-foreground">
+                        ({run.data.summary.longCount ?? 0} long · {run.data.summary.shortCount} short)
+                      </span>
+                    )}
+                  </dd>
+                </div>
                 <div><dt className="text-xs text-muted-foreground">PnL total</dt><dd><Pnl value={run.data.summary.totalPnl} /></dd></div>
                 <div><dt className="text-xs text-muted-foreground">Win rate</dt><dd className="tabular-nums">{run.data.tradeCount ? formatFraction(run.data.summary.winRate, 1) : "—"}</dd></div>
                 <div><dt className="text-xs text-muted-foreground">Max drawdown</dt><dd className="tabular-nums">{formatFraction(run.data.summary.maxDrawdownPct, 1)}</dd></div>

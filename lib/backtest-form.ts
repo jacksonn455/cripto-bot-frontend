@@ -1,6 +1,8 @@
 import type { RunBacktestInput, StrategyParam } from "@/lib/schemas";
 
 export const MAX_SYMBOLS = 10;
+/** Strategy parameter that turns the short side on (0/1). */
+export const SHORT_PARAM = "allowShort";
 
 export interface BacktestFormValues {
   strategy: string;
@@ -16,6 +18,10 @@ export interface BacktestFormValues {
   feesPct: string;
   slippagePct: string;
   walkForwardDays: string;
+  /** Run with the short side on (strategy param allowShort = 1). */
+  includeShort: boolean;
+  /** In percent per day, as typed (0,03 = 0.03%/day). Only sent when includeShort. */
+  shortBorrowPctPerDay: string;
   /** Raw inputs by param key; "" = keep the configured value. */
   params: Record<string, string>;
 }
@@ -69,8 +75,21 @@ export function buildBacktestInput(
     else walkForward = { testWindowDays: days };
   }
 
+  let shortBorrow: number | undefined;
+  if (v.includeShort) {
+    const perDay = parseDecimal(v.shortBorrowPctPerDay);
+    if (!(perDay >= 0 && perDay <= 5)) errors.shortBorrowPctPerDay = "Custo do short entre 0% e 5% ao dia.";
+    else shortBorrow = perDay / 100;
+  }
+
   const strategyParams: Record<string, number> = {};
   for (const p of params) {
+    // allowShort is driven by the "Incluir Short" switch, not by a numeric input.
+    if (p.key === SHORT_PARAM) {
+      const wanted = v.includeShort ? 1 : 0;
+      if (wanted !== p.value) strategyParams[p.key] = wanted;
+      continue;
+    }
     const raw = v.params[p.key]?.trim();
     if (!raw) continue;
     const value = parseDecimal(raw);
@@ -94,7 +113,13 @@ export function buildBacktestInput(
       feesPct: fees / 100,
       slippagePct: slippage / 100,
       ...(walkForward ? { walkForward } : {}),
+      ...(v.includeShort && shortBorrow !== undefined ? { shortBorrowPctPerDay: shortBorrow } : {}),
       ...(Object.keys(strategyParams).length ? { strategyParams } : {}),
     },
   };
+}
+
+/** The strategy's short switch, when it has one (older backends don't). */
+export function shortParamOf(params: StrategyParam[] | undefined): StrategyParam | undefined {
+  return params?.find((p) => p.key === SHORT_PARAM);
 }

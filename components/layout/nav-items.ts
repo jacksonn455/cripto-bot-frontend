@@ -1,4 +1,4 @@
-import { Activity, BarChart3, CandlestickChart, FlaskConical, LayoutDashboard, List, Percent, type LucideIcon } from "lucide-react";
+import { Activity, BarChart3, CandlestickChart, FlaskConical, LayoutDashboard, List, Percent, Sparkles, type LucideIcon } from "lucide-react";
 
 export interface NavItem {
   href: string;
@@ -14,6 +14,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/backtests", label: "Backtests", icon: FlaskConical },
   { href: "/funding", label: "Funding", icon: Percent },
   { href: "/signals", label: "Sinais e eventos", icon: Activity },
+  { href: "/ai", label: "Análise com IA", icon: Sparkles },
 ];
 
 export function isActive(pathname: string, href: string) {

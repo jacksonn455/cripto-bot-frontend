@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, CirclePause, CirclePlay, PowerOff, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CircleMinus, CirclePause, CirclePlay, PowerOff, XCircle } from "lucide-react";
 import type { ReactNode } from "react";
 import { ModeBadge } from "@/components/mode/mode-badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,7 +52,14 @@ function ServicesHealth() {
   return (
     <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
       <Service name="MongoDB" ok={mongo.ok} latencyMs={mongo.latencyMs} down="fora do ar" />
-      <Service name="Redis (cache)" ok={redis.ok} latencyMs={redis.latencyMs} down="indisponível — relatórios sem cache, o painel continua funcionando" />
+      {redis.status === "disabled" ? (
+        // REDIS_URL empty or REDIS_ENABLED=false: an intentional setup (e.g. Render), not an outage.
+        <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+          <CircleMinus className="size-4" aria-hidden /> Redis (cache): desativado — opcional, relatórios leem direto do MongoDB
+        </span>
+      ) : (
+        <Service name="Redis (cache)" ok={redis.ok} latencyMs={redis.latencyMs} down="indisponível — relatórios sem cache, o painel continua funcionando" />
+      )}
     </span>
   );
 }

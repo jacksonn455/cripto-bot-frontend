@@ -15,7 +15,8 @@ import { cn } from "@/lib/utils";
 
 const ACTION_CLASS: Record<string, string> = {
   ENTER_LONG: "border-profit/50 text-profit",
-  ENTER_SHORT: "border-profit/50 text-profit",
+  // Distinct from long entries: same meaning as the orange SHORT color used in the Discord alerts.
+  ENTER_SHORT: "border-warning/60 text-warning",
   EXIT: "border-loss/50 text-loss",
 };
 

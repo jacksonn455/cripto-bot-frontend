@@ -27,6 +27,10 @@ export const tradeSchema = z.object({
   takeProfit: opt(z.number()),
   status: z.enum(TRADE_STATUSES),
   exitReason: opt(z.enum(EXIT_REASONS)),
+  /** Candle timeframe the strategy traded on; absent on older trades. */
+  timeframe: opt(z.string()),
+  /** Strategy's explanation of the entry (paper/live, newer backends). */
+  entryReason: opt(z.string()),
   maxAdverseExcursion: opt(z.number()),
   maxFavorableExcursion: opt(z.number()),
   /** true only on trades created by the backend's dev seed script (fake data). */
@@ -50,6 +54,7 @@ export interface TradesQuery {
   mode?: z.infer<typeof modeSchema>;
   symbol?: string;
   strategy?: string;
+  side?: (typeof TRADE_SIDES)[number];
   status?: (typeof TRADE_STATUSES)[number];
   /** Backtest execution id. */
   runId?: string;

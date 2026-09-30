@@ -1,5 +1,5 @@
 import type { LiveEvent } from "@/components/live/live-events-provider";
-import { formatNumber, formatSignedMoney } from "@/lib/format";
+import { formatNumber, formatSignedMoney, formatSignedPercent } from "@/lib/format";
 import type { Mode } from "@/lib/schemas";
 import { REJECT_REASON_LABELS } from "@/lib/schemas/signals";
 import { exitReasonLabel } from "@/lib/trades";
@@ -48,7 +48,13 @@ export function describeEvent(e: LiveEvent, ranges: StrategyRanges = DEFAULT_RAN
         kind: "entry",
         tone: "neutral",
         title: `Entrada ${e.data.side} em ${e.data.symbol}`,
-        detail: `${formatNumber(e.data.qty, 6)} @ ${price(e.data.entryPrice)}${e.data.stopLoss != null ? ` · stop ${price(e.data.stopLoss)}` : ""}`,
+        detail: [
+          `${formatNumber(e.data.qty, 6)} @ ${price(e.data.entryPrice)}${e.data.stopLoss != null ? ` · stop ${price(e.data.stopLoss)}` : ""}`,
+          e.data.timeframe,
+          e.data.signalReason,
+        ]
+          .filter(Boolean)
+          .join(" · "),
         mode: e.data.mode,
         at,
       };
@@ -56,8 +62,16 @@ export function describeEvent(e: LiveEvent, ranges: StrategyRanges = DEFAULT_RAN
       return {
         kind: "exit",
         tone: e.data.pnl > 0 ? "profit" : e.data.pnl < 0 ? "loss" : "neutral",
-        title: `Saída em ${e.data.symbol}: ${formatSignedMoney(e.data.pnl)}`,
-        detail: exitReasonLabel(e.data.reason),
+        title: `${e.data.side ? `${e.data.side} fechado` : "Saída"} em ${e.data.symbol}: ${formatSignedMoney(e.data.pnl)}${
+          e.data.pnlPct != null ? ` (${formatSignedPercent(e.data.pnlPct)})` : ""
+        }`,
+        detail: [
+          exitReasonLabel(e.data.reason),
+          e.data.entryPrice != null && e.data.exitPrice != null ? `${price(e.data.entryPrice)} → ${price(e.data.exitPrice)}` : null,
+          e.data.reasonDetail,
+        ]
+          .filter(Boolean)
+          .join(" · "),
         mode: e.data.mode,
         at,
       };

@@ -20,6 +20,7 @@ import {
   formatWhen,
   nextCandleClose,
   rangesFromParams,
+  shortRsiBand,
   summarize,
   type StrategyRanges,
 } from "@/lib/strategy-explain";
@@ -95,9 +96,23 @@ function SymbolBlock({
   const rsi = ind.rsi ?? null;
   const emaRegime = ind.emaRegime ?? null;
   const judging = conditions.kind === "waiting" || conditions.kind === "entry";
+  const short = conditions.side === "short";
+  const [shortRsiMin, shortRsiMax] = shortRsiBand(ranges);
+  const rsiMin = short ? shortRsiMin : ranges.rsiMin;
+  const rsiMax = short ? shortRsiMax : ranges.rsiMax;
 
   let crossText: ReactNode = "Sem dados de médias ainda.";
-  if (conditions.kind === "entry") {
+  if (short) {
+    if (conditions.kind === "entry") {
+      crossText = `A EMA${ranges.emaFast} cruzou abaixo da EMA${ranges.emaSlow} neste candle.`;
+    } else if (emaFast != null && emaSlow != null) {
+      const gap = (emaFast - emaSlow) / emaSlow;
+      crossText =
+        gap >= 0
+          ? `EMA${ranges.emaFast} está ${pct(gap)} acima da EMA${ranges.emaSlow}, falta cair ${pct(gap)} para cruzar para baixo.`
+          : `EMA${ranges.emaFast} já está ${pct(gap)} abaixo da EMA${ranges.emaSlow}; precisa subir e cruzar para baixo de novo. A regra vale só no candle do cruzamento.`;
+    }
+  } else if (conditions.kind === "entry") {
     crossText = `A EMA${ranges.emaFast} cruzou acima da EMA${ranges.emaSlow} neste candle.`;
   } else if (emaFast != null && emaSlow != null) {
     const gap = (emaFast - emaSlow) / emaSlow;
@@ -134,7 +149,14 @@ function SymbolBlock({
       <p className="text-sm">{summarize(conditions)}</p>
       {judging || conditions.kind === "unknown" ? (
         <ul className="space-y-3">
-          <Check ok={conditions.cross} title={`Cruzamento de alta: EMA${ranges.emaFast} cruzou acima da EMA${ranges.emaSlow} neste candle?`}>
+          <Check
+            ok={conditions.cross}
+            title={
+              short
+                ? `Cruzamento de baixa (short): EMA${ranges.emaFast} cruzou abaixo da EMA${ranges.emaSlow} neste candle?`
+                : `Cruzamento de alta: EMA${ranges.emaFast} cruzou acima da EMA${ranges.emaSlow} neste candle?`
+            }
+          >
             {crossText}
             {emaFast != null && emaSlow != null && (
               <span className="mt-0.5 block text-xs tabular-nums">
@@ -142,11 +164,22 @@ function SymbolBlock({
               </span>
             )}
           </Check>
-          <Check ok={conditions.regime} title={`Tendência maior de alta: preço acima da EMA${ranges.emaRegime} no gráfico de ${regimeTimeframe}?`}>
+          <Check
+            ok={conditions.regime}
+            title={
+              short
+                ? `Tendência maior de baixa (short): preço abaixo da EMA${ranges.emaRegime} no gráfico de ${regimeTimeframe}?`
+                : `Tendência maior de alta: preço acima da EMA${ranges.emaRegime} no gráfico de ${regimeTimeframe}?`
+            }
+          >
             {conditions.regime === true
-              ? "Sim: a tendência maior está de alta."
+              ? short
+                ? "Sim: a tendência maior está de baixa (regras de short)."
+                : "Sim: a tendência maior está de alta."
               : conditions.regime === false
-                ? "Ainda não: o preço está abaixo dessa média no gráfico maior."
+                ? short
+                  ? "Ainda não: o preço está praticamente em cima dessa média, tendência indefinida."
+                  : "Ainda não: o preço está abaixo dessa média no gráfico maior."
                 : "Sem dado ainda."}
             {emaRegime != null && (
               <span className="mt-0.5 block text-xs tabular-nums">
@@ -155,9 +188,9 @@ function SymbolBlock({
               </span>
             )}
           </Check>
-          <Check ok={conditions.rsi} title={`RSI na faixa de ${ranges.rsiMin} a ${ranges.rsiMax}?`}>
+          <Check ok={conditions.rsi} title={`RSI na faixa de ${rsiMin} a ${rsiMax}${short ? " (short)" : ""}?`}>
             {rsi != null ? (
-              <>RSI atual {formatNumber(rsi, 1)} (faixa aceita: {ranges.rsiMin} a {ranges.rsiMax}).</>
+              <>RSI atual {formatNumber(rsi, 1)} (faixa aceita{short ? " no short" : ""}: {rsiMin} a {rsiMax}).</>
             ) : conditions.rsi === true ? (
               "Dentro da faixa."
             ) : conditions.rsi === false ? (
@@ -204,8 +237,11 @@ export function WhyNoTrades() {
           Por que não há trades agora? <ModeBadge mode={s.mode} />
         </CardTitle>
         <CardDescription>
-          O bot só compra quando as 3 condições abaixo acontecem juntas no fechamento de um candle de {live.timeframe}. Na
-          maior parte do tempo alguma falta, e é normal passar horas ou dias sem trade.
+          O bot só entra quando as 3 condições abaixo acontecem juntas no fechamento de um candle de {live.timeframe}. Na
+          maior parte do tempo alguma falta, e é normal passar horas ou dias sem trade.{" "}
+          {ranges.allowShort
+            ? "Short ligado: com a tendência maior de baixa, ele avalia as regras espelhadas de venda a descoberto."
+            : "Só opera Long (Short desligado no backend: TREND_ALLOW_SHORT)."}
         </CardDescription>
         <p className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-sm">
           <span className="inline-flex items-center gap-1.5">

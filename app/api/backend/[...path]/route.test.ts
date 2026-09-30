@@ -55,6 +55,18 @@ describe("backend proxy", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("proxies the AI endpoints (status + agent runs) but nothing else under /ai", async () => {
+    const { GET, POST } = await loadRoute({ API_URL: "http://bot:9000", API_KEY: "s3cret" });
+    expect((await GET(new NextRequest("http://painel/api/backend/ai/status"), ctx("ai/status"))).status).toBe(200);
+    await POST(new NextRequest("http://painel/api/backend/ai/agents/risk-analyst/run", { method: "POST", body: "{}" }), ctx("ai/agents/risk-analyst/run"));
+    expect(fetchMock.mock.calls[1][0]).toBe("http://bot:9000/ai/agents/risk-analyst/run");
+    expect((fetchMock.mock.calls[1][1].headers as Headers).get("x-control-api-key")).toBe("s3cret");
+    fetchMock.mockClear();
+    expect((await GET(new NextRequest("http://painel/api/backend/ai/agents/risk-analyst/run"), ctx("ai/agents/risk-analyst/run"))).status).toBe(404);
+    expect((await POST(new NextRequest("http://painel/api/backend/ai/other", { method: "POST" }), ctx("ai/other"))).status).toBe(404);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("answers 503 BACKEND_OFFLINE when the backend is unreachable", async () => {
     fetchMock.mockRejectedValueOnce(new TypeError("fetch failed"));
     const { GET } = await loadRoute({ API_URL: "http://bot:9000" });

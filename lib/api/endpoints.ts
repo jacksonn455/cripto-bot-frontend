@@ -1,4 +1,8 @@
 import {
+  agentRunResultSchema,
+  aiStatusSchema,
+  type AgentKey,
+  type AgentRunInput,
   backtestRunResponseSchema,
   backtestRunSchema,
   backtestRunsPageSchema,
@@ -90,4 +94,9 @@ export const api = {
       apiGet(storedEventsSchema, "events/recent", q, signal),
   },
   health: (signal?: AbortSignal) => apiGet(healthSchema, "health", undefined, signal),
+  /** Advisory OpenAI agents (read-only tools; the backend never acts on their answers). */
+  ai: {
+    status: (signal?: AbortSignal) => apiGet(aiStatusSchema, "ai/status", undefined, signal),
+    run: (agent: AgentKey, input: AgentRunInput) => apiPost(agentRunResultSchema, `ai/agents/${encodeURIComponent(agent)}/run`, input),
+  },
 };

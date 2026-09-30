@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { MetricsGrid } from "@/components/analytics/metrics-grid";
 import { ModeComparison } from "@/components/analytics/mode-comparison";
+import { SideComparison } from "@/components/analytics/side-comparison";
 import { EquityChart } from "@/components/charts/equity-chart";
 import { PageHeader } from "@/components/layout/page-header";
 import { ModeBadge } from "@/components/mode/mode-badge";
@@ -24,6 +25,7 @@ import { formatDate, formatDateTime, formatFraction, formatNumber } from "@/lib/
 import type { BacktestRun, TradesQuery } from "@/lib/schemas";
 import { Pnl } from "@/components/data/pnl";
 import { OverfittingNotice } from "./overfitting-notice";
+import { RunCosts } from "./run-costs";
 import { RunParams } from "./run-params";
 import { RunReading } from "./run-reading";
 
@@ -87,7 +89,23 @@ function RunDetail({ run }: { run: BacktestRun }) {
         {run.summary.tradeCount === 0 ? (
           <EmptyState title="Nenhuma trade simulada" description="A estratégia não gerou entradas nesse período e timeframe." />
         ) : (
-          <MetricsGrid summary={run.summary} />
+          <>
+            <MetricsGrid summary={run.summary} />
+            <SideComparison
+              summary={run.summary}
+              description="Resultado por lado nesta simulação. Para saber se o short agrega valor, compare com o mesmo período rodado sem short."
+            />
+          </>
+        )}
+
+        {(run.costs || run.exposurePct != null) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Custos e exposição</CardTitle>
+              <CardDescription>O que a simulação cobrou (já descontado do PnL) e quanto tempo ficou posicionada.</CardDescription>
+            </CardHeader>
+            <CardContent><RunCosts run={run} /></CardContent>
+          </Card>
         )}
 
         <Card>

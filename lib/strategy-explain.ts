@@ -11,14 +11,28 @@ export interface StrategyRanges {
   emaRegime: number;
   rsiMin: number;
   rsiMax: number;
+  /** Whether the strategy also opens shorts (param allowShort = 1). */
+  allowShort: boolean;
 }
 
-export const DEFAULT_RANGES: StrategyRanges = { emaFast: 20, emaSlow: 50, emaRegime: 200, rsiMin: 45, rsiMax: 70 };
+export const DEFAULT_RANGES: StrategyRanges = { emaFast: 20, emaSlow: 50, emaRegime: 200, rsiMin: 45, rsiMax: 70, allowShort: false };
+
+/** The long RSI band reflected around 50, as the backend does for shorts ([45,70] -> [30,55]). */
+export function shortRsiBand(r: Pick<StrategyRanges, "rsiMin" | "rsiMax">): [number, number] {
+  return [100 - r.rsiMax, 100 - r.rsiMin];
+}
 
 /** Builds the ranges from GET /strategies params (falls back to the defaults). */
 export function rangesFromParams(params: Array<{ key: string; value: number }> | undefined): StrategyRanges {
-  const value = (k: keyof StrategyRanges) => params?.find((p) => p.key === k)?.value ?? DEFAULT_RANGES[k];
-  return { emaFast: value("emaFast"), emaSlow: value("emaSlow"), emaRegime: value("emaRegime"), rsiMin: value("rsiMin"), rsiMax: value("rsiMax") };
+  const value = (k: Exclude<keyof StrategyRanges, "allowShort">) => params?.find((p) => p.key === k)?.value ?? DEFAULT_RANGES[k];
+  return {
+    emaFast: value("emaFast"),
+    emaSlow: value("emaSlow"),
+    emaRegime: value("emaRegime"),
+    rsiMin: value("rsiMin"),
+    rsiMax: value("rsiMax"),
+    allowShort: params?.find((p) => p.key === "allowShort")?.value === 1,
+  };
 }
 
 const NO_CROSS = /sem cruzamento/i;
@@ -26,8 +40,13 @@ const NO_REGIME = /regime n[aã]o est[aá] em alta/i;
 const RSI_OUT = /RSI fora da faixa/i;
 const NO_HISTORY = /not enough candle history|evaluation failed/i;
 const OPEN_POSITION = /Posi[cç][aã]o aberta/i;
+// Short-side fragments (TrendRegimeStrategy.explainNoShortEntry), used when allowShort=1 and the regime isn't up.
+const SHORT_CONTEXT = /(^|;)\s*short:/i;
+const SHORT_NO_CROSS = /short:\s*sem cruzamento/i;
+const SHORT_RSI_OUT = /short:\s*RSI fora da faixa/i;
+const REGIME_UNDEFINED = /regime indefinido/i;
 
-export const NO_ENTRY_TOOLTIP = "O bot avaliou e não encontrou motivo para comprar. Isso é normal.";
+export const NO_ENTRY_TOOLTIP = "O bot avaliou e não encontrou motivo para entrar (comprar ou vender). Isso é normal.";
 
 /** Translates the strategy's technical reason into plain Portuguese. Unknown text passes through. */
 export function translateReason(reason: string, ranges: StrategyRanges = DEFAULT_RANGES): string {
@@ -35,6 +54,12 @@ export function translateReason(reason: string, ranges: StrategyRanges = DEFAULT
   if (/^sem condicao de entrada$/i.test(reason.trim())) return "Nenhuma condição de entrada";
   const parts = reason.split(";").map((p) => p.trim()).filter(Boolean);
   const translated = parts.map((p) => {
+    if (SHORT_NO_CROSS.test(p)) return "Short: média rápida ainda não cruzou para baixo da lenta";
+    if (SHORT_RSI_OUT.test(p)) {
+      const [min, max] = shortRsiBand(ranges);
+      return `Short: RSI fora da faixa de ${min} a ${max}`;
+    }
+    if (REGIME_UNDEFINED.test(p)) return "Tendência maior indefinida (preço colado na média de regime)";
     if (NO_CROSS.test(p)) return "Média rápida ainda não cruzou a lenta";
     if (NO_REGIME.test(p)) return "Tendência maior não está de alta";
     if (RSI_OUT.test(p)) return `RSI fora da faixa de ${ranges.rsiMin} a ${ranges.rsiMax}`;
@@ -47,6 +72,8 @@ export type DecisionKind = "waiting" | "entry" | "exit" | "position" | "no-data"
 
 export interface Conditions {
   kind: DecisionKind;
+  /** Which side the conditions refer to: short when the backend evaluated the short rules. */
+  side: "long" | "short";
   /** null = unknown (e.g. no evaluation yet, or a position is open). */
   cross: boolean | null;
   regime: boolean | null;
@@ -55,15 +82,25 @@ export interface Conditions {
 
 /** Which entry conditions passed, from the action + reason of the last evaluation. */
 export function conditionsFrom(action: string | undefined, reason: string | undefined): Conditions {
-  if (!action || reason === undefined) return { kind: "unknown", cross: null, regime: null, rsi: null };
-  if (action === "ENTER_LONG" || action === "ENTER_SHORT") return { kind: "entry", cross: true, regime: true, rsi: true };
-  if (action === "EXIT") return { kind: "exit", cross: null, regime: null, rsi: null };
-  if (action === "SKIP" || NO_HISTORY.test(reason)) return { kind: "no-data", cross: null, regime: null, rsi: null };
-  if (OPEN_POSITION.test(reason)) return { kind: "position", cross: null, regime: null, rsi: null };
-  return { kind: "waiting", cross: !NO_CROSS.test(reason), regime: !NO_REGIME.test(reason), rsi: !RSI_OUT.test(reason) };
+  const isShort = action === "ENTER_SHORT" || (reason !== undefined && (SHORT_CONTEXT.test(reason) || REGIME_UNDEFINED.test(reason)));
+  const side = isShort ? "short" : "long";
+  const none = { cross: null, regime: null, rsi: null };
+  if (!action || reason === undefined) return { kind: "unknown", side, ...none };
+  if (action === "ENTER_LONG" || action === "ENTER_SHORT") return { kind: "entry", side, cross: true, regime: true, rsi: true };
+  if (action === "EXIT") return { kind: "exit", side, ...none };
+  if (action === "SKIP" || NO_HISTORY.test(reason)) return { kind: "no-data", side, ...none };
+  if (OPEN_POSITION.test(reason)) return { kind: "position", side, ...none };
+  return {
+    kind: "waiting",
+    side,
+    cross: !NO_CROSS.test(reason),
+    regime: !NO_REGIME.test(reason) && !REGIME_UNDEFINED.test(reason),
+    rsi: !RSI_OUT.test(reason),
+  };
 }
 
 const LABEL = { cross: "o cruzamento das médias", regime: "a tendência maior de alta", rsi: "o RSI entrar na faixa" } as const;
+const SHORT_LABEL = { cross: "o cruzamento das médias para baixo", regime: "uma tendência maior definida", rsi: "o RSI entrar na faixa do short" } as const;
 const OK_LABEL = { cross: "Cruzamento", regime: "Tendência", rsi: "RSI" } as const;
 
 /** One-line summary, e.g. "O bot está funcionando e esperando o cruzamento. Tendência e RSI estão ok." */
@@ -78,15 +115,19 @@ export function summarize(c: Conditions): string {
     case "exit":
       return "O último candle deu sinal de saída da posição.";
     case "entry":
-      return "Todas as condições foram atendidas no último candle: sinal de compra enviado ao gerenciador de risco.";
+      return c.side === "short"
+        ? "Todas as condições de short foram atendidas no último candle: sinal de venda a descoberto enviado ao gerenciador de risco."
+        : "Todas as condições foram atendidas no último candle: sinal de compra enviado ao gerenciador de risco.";
     case "waiting": {
       const keys = ["cross", "regime", "rsi"] as const;
       const missing = keys.filter((k) => c[k] === false);
       const ok = keys.filter((k) => c[k] === true).map((k) => OK_LABEL[k]);
-      const wait = missing.map((k) => LABEL[k]);
+      const labels = c.side === "short" ? SHORT_LABEL : LABEL;
+      const wait = missing.map((k) => labels[k]);
       const waitText = wait.length > 1 ? `${wait.slice(0, -1).join(", ")} e ${wait.at(-1)}` : wait[0];
       const okText = ok.length === 0 ? "" : ok.length === 1 ? ` ${ok[0]} está ok.` : ` ${ok.slice(0, -1).join(", ")} e ${ok.at(-1)} estão ok.`;
-      return `O bot está funcionando e esperando ${waitText ?? "uma condição de entrada"}.${okText}`;
+      const prefix = c.side === "short" ? "A tendência maior não está de alta, então o bot avalia o short: está" : "O bot está funcionando e";
+      return `${prefix} esperando ${waitText ?? "uma condição de entrada"}.${okText}`;
     }
   }
 }

@@ -11,6 +11,7 @@ export const PAGE_SIZES = [20, 50, 100] as const;
 export interface TradeFilters {
   symbol: string;
   strategy: string;
+  side: "" | "LONG" | "SHORT";
   status: "" | "OPEN" | "CLOSED";
   period: PeriodKey;
   /** yyyy-mm-dd, only for period=custom. */
@@ -25,6 +26,7 @@ export interface TradeFilters {
 const DEFAULTS: TradeFilters = {
   symbol: "",
   strategy: "",
+  side: "",
   status: "",
   period: "all",
   customFrom: "",
@@ -51,6 +53,7 @@ export function useTradeFilters() {
     return {
       symbol: params.get("symbol") ?? "",
       strategy: params.get("strategy") ?? "",
+      side: oneOf(params.get("side"), ["", "LONG", "SHORT"] as const, ""),
       status: oneOf(params.get("status"), ["", "OPEN", "CLOSED"] as const, ""),
       period: oneOf(params.get("period"), PERIOD_PRESETS.map((p) => p.key), "all"),
       customFrom: params.get("from") ?? "",
@@ -73,6 +76,7 @@ export function useTradeFilters() {
       };
       set("symbol", next.symbol.trim().toUpperCase(), "");
       set("strategy", next.strategy.trim(), "");
+      set("side", next.side, "");
       set("status", next.status, "");
       set("period", next.period, "all");
       if (next.period === "custom") {
@@ -91,7 +95,7 @@ export function useTradeFilters() {
 
   const reset = useCallback(() => router.replace(pathname, { scroll: false }), [pathname, router]);
 
-  const hasFilters = Boolean(filters.symbol || filters.strategy || filters.status || filters.period !== "all");
+  const hasFilters = Boolean(filters.symbol || filters.strategy || filters.side || filters.status || filters.period !== "all");
 
   /** The backend query (without page/limit/sort for the CSV export). */
   const query: TradesQuery = useMemo(() => {
@@ -100,6 +104,7 @@ export function useTradeFilters() {
       mode,
       symbol: filters.symbol || undefined,
       strategy: filters.strategy || undefined,
+      side: filters.side || undefined,
       status: filters.status || undefined,
       ...range,
       page: filters.page,

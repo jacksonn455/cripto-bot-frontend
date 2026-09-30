@@ -15,6 +15,8 @@ const base: BacktestFormValues = {
   feesPct: "0,1",
   slippagePct: "0.05",
   walkForwardDays: "",
+  includeShort: false,
+  shortBorrowPctPerDay: "0,03",
   params: {},
 };
 
@@ -60,5 +62,32 @@ describe("buildBacktestInput", () => {
   it("never asks for data past now", () => {
     const { input } = buildBacktestInput({ ...base, to: "2026-12-31" }, params, NOW);
     expect(new Date(input!.to).getTime()).toBe(NOW);
+  });
+});
+
+describe("buildBacktestInput short side", () => {
+  it("long-only by default: no allowShort override and no short carry sent", () => {
+    const { input } = buildBacktestInput(base, params, NOW);
+    expect(input).not.toHaveProperty("strategyParams");
+    expect(input).not.toHaveProperty("shortBorrowPctPerDay");
+  });
+
+  it("'Incluir Short' sends allowShort=1 and the carry cost as a fraction per day", () => {
+    const { input, errors } = buildBacktestInput({ ...base, includeShort: true, shortBorrowPctPerDay: "0,05" }, params, NOW);
+    expect(errors).toEqual({});
+    expect(input!.strategyParams).toEqual({ allowShort: 1 });
+    expect(input!.shortBorrowPctPerDay).toBeCloseTo(0.0005);
+  });
+
+  it("ignores a typed allowShort in the numeric params (the switch decides)", () => {
+    const { input } = buildBacktestInput({ ...base, params: { allowShort: "1" } }, params, NOW);
+    expect(input).not.toHaveProperty("strategyParams");
+  });
+
+  it("validates the carry cost only when shorts are included", () => {
+    expect(buildBacktestInput({ ...base, includeShort: true, shortBorrowPctPerDay: "9" }, params, NOW).errors).toHaveProperty(
+      "shortBorrowPctPerDay",
+    );
+    expect(buildBacktestInput({ ...base, shortBorrowPctPerDay: "9" }, params, NOW).errors).toEqual({});
   });
 });

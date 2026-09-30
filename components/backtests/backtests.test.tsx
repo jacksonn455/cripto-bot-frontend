@@ -105,6 +105,26 @@ describe("BacktestsView", () => {
     expect(screen.getByText("Nenhum backtest ainda")).toBeInTheDocument();
   });
 
+  it("'Incluir Short' sends allowShort=1 plus the short carry cost", async () => {
+    const api = stub([
+      { path: "strategies", body: strategiesFixture },
+      { path: "backtest/runs", body: runsPage([backtestRunFixture]) },
+      { path: `backtest/runs/${backtestRunResponseFixture.runId}`, body: backtestRunFixture },
+      { method: "POST", path: "backtest/run", body: backtestRunResponseFixture },
+    ]);
+    const user = userEvent.setup();
+    renderWithProviders(<BacktestsView />);
+
+    await user.click(await screen.findByRole("checkbox", { name: /incluir short/i }));
+    expect(screen.getByLabelText(/custo do short/i)).toHaveValue("0,03");
+    await user.click(screen.getByRole("button", { name: /rodar backtest/i }));
+
+    await waitFor(() => expect(api.calls.some((c) => c.method === "POST")).toBe(true));
+    const body = JSON.parse(api.calls.find((c) => c.method === "POST")!.body!);
+    expect(body.strategyParams).toEqual({ allowShort: 1 });
+    expect(body.shortBorrowPctPerDay).toBeCloseTo(0.0003);
+  });
+
   it("enables comparing only with two runs selected", async () => {
     const second = { ...backtestRunFixture, runId: "bt_2", createdAt: "2026-09-29T12:00:00.000Z" };
     stub([
@@ -114,7 +134,8 @@ describe("BacktestsView", () => {
     const user = userEvent.setup();
     renderWithProviders(<BacktestsView />);
 
-    const boxes = await screen.findAllByRole("checkbox");
+    // Only the run-selection boxes (the form also has an "Incluir Short" checkbox).
+    const boxes = await screen.findAllByRole("checkbox", { name: /selecionar/i });
     expect(screen.getByRole("button", { name: /comparar/i })).toBeDisabled();
     await user.click(boxes[0]);
     await user.click(boxes[1]);

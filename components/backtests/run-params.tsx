@@ -14,6 +14,7 @@ export function runParamRows(run: BacktestRun): ParamRow[] {
   const num = (k: string) => (typeof run.params[k] === "number" ? (run.params[k] as number) : null);
   const regime = typeof run.params.regimeTimeframe === "string" ? run.params.regimeTimeframe : null;
   const lookback = num("candleLookback");
+  const shortBorrow = num("shortBorrowPctPerDay");
   const allocation = num("allocationPerSymbol");
   return [
     { key: "strategy", label: "Estratégia", value: run.strategy },
@@ -28,10 +29,13 @@ export function runParamRows(run: BacktestRun): ParamRow[] {
       : []),
     { key: "feesPct", label: "Taxa por lado", value: formatFraction(run.feesPct, 3) },
     { key: "slippagePct", label: "Slippage", value: formatFraction(run.slippagePct, 3) },
+    // allowShort is left out of the hashed params when 0 (long-only), so absent = no shorts.
+    { key: "short", label: "Short", value: strategyParams.allowShort === 1 ? "incluído" : "não (só long)" },
+    ...(shortBorrow != null ? [{ key: "shortBorrowPctPerDay", label: "Custo do short", value: `${formatFraction(shortBorrow, 3)} ao dia` }] : []),
     ...(run.walkForwardWindows?.length
       ? [{ key: "walkForward", label: "Walk-forward", value: `${run.walkForwardWindows.length} janela(s)` }]
       : []),
-    ...Object.entries(strategyParams).map(([k, v]) => ({
+    ...Object.entries(strategyParams).filter(([k]) => k !== "allowShort").map(([k, v]) => ({
       key: `sp.${k}`,
       label: k,
       value: typeof v === "number" ? formatNumber(v, Number.isInteger(v) ? 0 : 2) : String(v),

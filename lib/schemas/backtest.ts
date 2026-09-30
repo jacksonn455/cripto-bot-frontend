@@ -9,6 +9,18 @@ const walkForwardWindowSchema = z.object({
   tradeCount: z.number().int(),
 });
 
+/** Trading costs charged in the simulation. The slippage/short-carry fields are absent on older runs. */
+export const backtestCostsSchema = z.object({
+  totalFees: z.number(),
+  feesPctOfCapital: z.number(),
+  totalSlippage: opt(z.number()),
+  slippagePctOfCapital: opt(z.number()),
+  /** Short borrow/funding cost, already included in totalFees. */
+  totalShortCarry: opt(z.number()),
+  shortBorrowPctPerDay: opt(z.number()),
+});
+export type BacktestCosts = z.infer<typeof backtestCostsSchema>;
+
 /** BacktestService.BacktestRunResponse — POST /backtest/run. */
 export const backtestRunResponseSchema = z.object({
   runId: z.string(),
@@ -16,6 +28,8 @@ export const backtestRunResponseSchema = z.object({
   tradeCount: z.number().int(),
   paramVariationsTestedForStrategy: z.number().int(),
   walkForwardWindows: opt(z.array(walkForwardWindowSchema)),
+  costs: opt(backtestCostsSchema),
+  exposurePct: opt(z.number()),
 });
 export type BacktestRunResponse = z.infer<typeof backtestRunResponseSchema>;
 
@@ -45,7 +59,9 @@ export const backtestRunSchema = z.object({
     }),
   ),
   /** Trading costs charged in the simulation. Absent on older runs. */
-  costs: opt(z.object({ totalFees: z.number(), feesPctOfCapital: z.number() })),
+  costs: opt(backtestCostsSchema),
+  /** Fraction (0–1) of the simulated candles with an open position. Absent on older runs. */
+  exposurePct: opt(z.number()),
 });
 export type BacktestRun = z.infer<typeof backtestRunSchema>;
 /** GET /backtest/runs — newest first. */
@@ -72,6 +88,8 @@ export interface RunBacktestInput {
   feesPct?: number;
   /** Fraction, 0–0.1. */
   slippagePct?: number;
+  /** Short carry per day held, fraction of the entry notional (0–0.05). Only matters with allowShort=1. */
+  shortBorrowPctPerDay?: number;
   walkForward?: { testWindowDays: number };
   /** Overrides for GET /strategies params; only changed ones need to be sent. */
   strategyParams?: Record<string, number>;

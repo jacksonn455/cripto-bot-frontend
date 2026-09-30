@@ -12,6 +12,12 @@ import { useDataMode } from "@/hooks/use-data-mode";
 import type { TradeFilters } from "@/hooks/use-trade-filters";
 import { PERIOD_PRESETS, type PeriodKey } from "@/lib/trades";
 
+const SIDE_OPTIONS = [
+  { value: "all", label: "Ambos" },
+  { value: "LONG", label: "Long" },
+  { value: "SHORT", label: "Short" },
+] as const;
+
 const STATUS_OPTIONS = [
   { value: "all", label: "Todos" },
   { value: "OPEN", label: "Abertas" },
@@ -88,6 +94,20 @@ export function TradeFiltersBar({ filters, update, reset, hasFilters }: Props) {
         <datalist id="f-strategy-list">
           {suggestions.strategies.map((s) => <option key={s} value={s} />)}
         </datalist>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="f-side" className="text-xs">Lado</Label>
+        <Select value={filters.side || "all"} onValueChange={(v) => update({ side: v === "all" ? "" : (v as "LONG" | "SHORT") })}>
+          <SelectTrigger id="f-side" size="sm" className="w-28">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SIDE_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-1.5">

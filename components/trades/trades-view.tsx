@@ -33,6 +33,7 @@ export function TradesView() {
     mode: query.mode,
     symbol: query.symbol,
     strategy: query.strategy,
+    side: query.side,
     status: query.status,
     from: query.from,
     to: query.to,
