@@ -1,0 +1,62 @@
+import { z } from "zod";
+import { isoDate, opt } from "./common";
+
+/** RuntimeStatusService.SignalSnapshot. `action` is HOLD | ENTER_LONG | ENTER_SHORT | EXIT | SKIP. */
+export const signalSnapshotSchema = z.object({
+  action: z.string(),
+  reason: z.string(),
+  at: isoDate,
+  /** Close time of the evaluated candle; absent when the strategy couldn't evaluate. */
+  candleTime: opt(isoDate),
+  price: opt(z.number()),
+  /** The strategy's indicator snapshot: emaFast, emaSlow, rsi, atr, emaRegime. */
+  indicators: opt(z.record(z.string(), z.number().nullable())),
+});
+export type SignalSnapshot = z.infer<typeof signalSnapshotSchema>;
+
+/** ControlService.BotStatus — GET /bot/status. The bot itself only runs PAPER or LIVE. */
+export const botStatusSchema = z.object({
+  mode: z.enum(["PAPER", "LIVE"]),
+  paused: z.boolean(),
+  pauseReason: opt(z.string()),
+  lastReconciliationAt: opt(isoDate),
+  lastReconciliationOk: z.boolean(),
+  /** Last new closed candle evaluated — moves once per strategy timeframe (e.g. hourly on 1h). */
+  lastCycleAt: isoDate.nullable(),
+  /** Heartbeat of the polling loop — moves every pollIntervalSeconds while the loop is alive. */
+  lastPollAt: isoDate.nullable(),
+  executionEnabled: z.boolean(),
+  pollIntervalSeconds: z.number().int().positive(),
+  lastSignalBySymbol: z.record(z.string(), signalSnapshotSchema),
+  openTrades: z.number().int(),
+  /** Free balance of the quote asset (USDT) — not mark-to-market equity. 0 when the balance call fails. */
+  equity: z.number(),
+  lastError: z.string().nullable(),
+});
+export type BotStatus = z.infer<typeof botStatusSchema>;
+
+/** BotState document — returned by POST /bot/pause and /bot/resume. */
+export const botStateSchema = z.object({
+  isPaused: z.boolean(),
+  pauseReason: opt(z.string()),
+  lastReconciliationAt: opt(isoDate),
+  lastReconciliationOk: z.boolean(),
+  updatedAt: isoDate,
+});
+export type BotState = z.infer<typeof botStateSchema>;
+
+/** GET /health — Mongo is required; Redis is a fail-open cache (the app works without it). */
+export const healthSchema = z.object({
+  status: z.enum(["ok", "degraded", "down"]),
+  uptimeSeconds: z.number(),
+  mongo: z.object({ ok: z.boolean(), latencyMs: z.number().nullable() }),
+  redis: z.object({ ok: z.boolean(), latencyMs: z.number().nullable(), status: z.string() }),
+});
+export type Health = z.infer<typeof healthSchema>;
+
+/** ControlService.KillSwitchResult — POST /bot/kill-switch. */
+export const killSwitchResultSchema = z.object({
+  canceledOrders: z.number().int(),
+  closedPositions: z.number().int(),
+});
+export type KillSwitchResult = z.infer<typeof killSwitchResultSchema>;
