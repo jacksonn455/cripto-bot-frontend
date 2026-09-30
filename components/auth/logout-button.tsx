@@ -8,7 +8,6 @@ export function LogoutButton() {
   const logout = async () => {
     await fetch(withBasePath("/api/auth/logout"), { method: "POST" }).catch(() => undefined);
     // Full navigation on purpose: the server layout must re-render without the session.
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign(withBasePath("/login"));
   };
   return (

@@ -3,6 +3,9 @@ import { isAuthorized, SESSION_COOKIE } from "@/lib/auth";
 import { serverEnv } from "@/lib/server-env";
 
 export const dynamic = "force-dynamic";
+// Vercel function limit (seconds): covers the 5-min backtest timeout; the SSE stream is cut here
+// and EventSource reconnects on its own.
+export const maxDuration = 300;
 
 /**
  * Only the backend endpoints the dashboard uses are proxied. Anything else returns 404, so this

@@ -64,6 +64,23 @@ API_URL=http://192.168.0.10:8000 pnpm start   # sem rebuild
 O backend limita 120 requisições por minuto por IP. Como tudo sai do servidor do painel, esse
 limite vale para todas as abas abertas juntas.
 
+## Deploy (Vercel)
+
+Publicado em `https://jacksonmagnabosco.dev/bot`, com o backend no Render.
+
+| Variável | Valor |
+|---|---|
+| `NEXT_PUBLIC_BASE_PATH` | `/bot`. Entra no build: mudou, precisa de redeploy. Vazio = raiz do domínio. |
+| `API_URL` | URL do serviço no Render, sem `/` no final. |
+| `API_KEY` | Mesmo valor de `CONTROL_API_KEY` no Render (lá `API_KEY_REQUIRED_FOR_ALL=true`). |
+| `DASHBOARD_PASSWORD`, `SESSION_SECRET` | Login do painel. |
+| `TRUST_PROXY` | `true`: limite de tentativas de login por IP. |
+| `ENABLE_EXPERIMENTAL_COREPACK` | `1`: usa o pnpm do `packageManager`. |
+
+O `vercel.json` fixa as funções em `fra1` (Frankfurt), perto do backend no Render. A rota
+`/api/backend` tem `maxDuration` de 300 s: cobre o backtest, e o stream de eventos (SSE) é cortado
+nesse limite e reconecta sozinho.
+
 ## Scripts
 
 | Comando | O que faz |
