@@ -85,7 +85,7 @@ export function AnalyticsView() {
               description={
                 isBacktest
                   ? "Rode um backtest (tela Backtests) ou mude o período para “Tudo”."
-                  : "As análises aparecem depois que o bot fechar as primeiras trades neste modo."
+                  : "As análises aparecem depois que o Krypto fechar as primeiras trades neste modo."
               }
             />
           }

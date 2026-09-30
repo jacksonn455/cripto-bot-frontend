@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import { ThemeProvider } from "next-themes";
@@ -10,14 +10,32 @@ import { Providers } from "@/components/providers";
 import { BackendOfflineBanner } from "@/components/states/backend-offline-banner";
 import { authEnabled, isAuthorized, SESSION_COOKIE } from "@/lib/auth";
 import { MODE_COOKIE, parseMode } from "@/lib/mode";
+import mascot from "@/public/images/krypto-profile.png";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
+const DESCRIPTION =
+  "Krypto acompanha o mercado cripto, executa estratégias automatizadas em paper ou live e mostra trades, sinais e desempenho em um só lugar.";
+
+// Absolute base for the social preview image; Vercel provides the production domain.
+const SITE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined;
+
 export const metadata: Metadata = {
-  title: { default: "Trade Bot · Painel", template: "%s · Trade Bot" },
-  description: "Painel de acompanhamento do trade bot (projeto educacional).",
+  ...(SITE_URL && { metadataBase: new URL(SITE_URL) }),
+  title: { default: "Krypto · Inteligência de mercado cripto", template: "%s · Krypto" },
+  description: DESCRIPTION,
+  applicationName: "Krypto",
+  openGraph: { title: "Krypto", description: DESCRIPTION, siteName: "Krypto", type: "website", images: [mascot.src] },
+  twitter: { card: "summary", title: "Krypto", description: DESCRIPTION, images: [mascot.src] },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1020" },
+  ],
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

@@ -223,11 +223,11 @@ export function WhyNoTrades() {
 
   let banner: ReactNode = null;
   if (health.state === "disabled") {
-    banner = "O loop de execução está desligado (EXECUTION_ENABLED=false): o bot não avalia nada e não abre trades.";
+    banner = "O loop de execução está desligado (EXECUTION_ENABLED=false): o Krypto não avalia nada e não abre trades.";
   } else if (health.state === "stale") {
-    banner = `O bot parou de verificar o mercado há ${formatDuration(health.lagMs)}. Enquanto estiver parado, nenhum candle é avaliado e oportunidades são perdidas.`;
+    banner = `O Krypto parou de verificar o mercado há ${formatDuration(health.lagMs)}. Enquanto estiver parado, nenhum candle é avaliado e oportunidades são perdidas.`;
   } else if (s.paused) {
-    banner = "O bot está pausado: ele continua avaliando, mas o gerenciador de risco veta qualquer entrada até você retomar.";
+    banner = "O Krypto está pausado: ele continua avaliando, mas o gerenciador de risco veta qualquer entrada até você retomar.";
   }
 
   return (
@@ -237,7 +237,7 @@ export function WhyNoTrades() {
           Por que não há trades agora? <ModeBadge mode={s.mode} />
         </CardTitle>
         <CardDescription>
-          O bot só entra quando as 3 condições abaixo acontecem juntas no fechamento de um candle de {live.timeframe}. Na
+          O Krypto só entra quando as 3 condições abaixo acontecem juntas no fechamento de um candle de {live.timeframe}. Na
           maior parte do tempo alguma falta, e é normal passar horas ou dias sem trade.{" "}
           {ranges.allowShort
             ? "Short ligado: com a tendência maior de baixa, ele avalia as regras espelhadas de venda a descoberto."
@@ -249,7 +249,7 @@ export function WhyNoTrades() {
             Próxima avaliação em <strong className="tabular-nums">{formatCountdown(nextClose - now)}</strong>
           </span>
           <span className="text-xs text-muted-foreground">
-            (o próximo candle fecha às {formatWhen(nextClose, now)}; o bot confere a cada {s.pollIntervalSeconds} s, então
+            (o próximo candle fecha às {formatWhen(nextClose, now)}; o Krypto confere a cada {s.pollIntervalSeconds} s, então
             pode levar até isso a mais)
           </span>
         </p>

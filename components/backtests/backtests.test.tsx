@@ -80,7 +80,7 @@ describe("BacktestsView", () => {
     const user = userEvent.setup();
     renderWithProviders(<BacktestsView />);
 
-    await user.click(await screen.findByRole("button", { name: "Usar os do bot" }));
+    await user.click(await screen.findByRole("button", { name: "Usar os do Krypto" }));
     expect(screen.getByLabelText("Símbolos")).toHaveValue("BTCUSDT, ETHUSDT");
     await user.click(screen.getByRole("button", { name: "Rodar backtest" }));
     await screen.findByText("Resultado", { selector: "p" });

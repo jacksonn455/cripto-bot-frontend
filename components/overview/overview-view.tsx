@@ -18,7 +18,7 @@ export function OverviewView() {
 
   return (
     <>
-      <PageHeader title="Visão geral" description="Desempenho, status e posições do bot." />
+      <PageHeader title="Visão geral" description="Mercado, operações e desempenho do Krypto em um só lugar." />
       <div className="space-y-6">
         <SeedNotice mode={mode} />
         <OverviewCards mode={mode} status={status.data} />

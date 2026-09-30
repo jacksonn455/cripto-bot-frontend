@@ -84,7 +84,7 @@ export function EquitySection({ mode }: { mode: Mode }) {
                 description={
                   <>
                     O backend grava um ponto a cada 5 min enquanto o loop de execução está ligado
-                    (EXECUTION_ENABLED=true) e o bot roda em {mode}.
+                    (EXECUTION_ENABLED=true) e o Krypto roda em {mode}.
                     {range !== "all" && " Tente também o período “Tudo”."}
                   </>
                 }

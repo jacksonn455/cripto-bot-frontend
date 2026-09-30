@@ -25,5 +25,5 @@ export async function proxy(request: NextRequest) {
 export const config = {
   // Everything except the login page, its API, and static assets.
   // "/" listed on its own: with a basePath the pattern below becomes /bot/(...) and misses bare /bot.
-  matcher: ["/", "/((?!login|api/auth|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/", "/((?!login|api/auth|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest).*)"],
 };

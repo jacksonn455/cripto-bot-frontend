@@ -11,7 +11,7 @@ export function describeError(error: unknown): { title: string; message: string;
       case "offline":
         return {
           title: "Backend offline",
-          message: "O painel não conseguiu falar com o backend do bot. Verifique se ele está rodando.",
+          message: "O painel não conseguiu falar com o servidor do Krypto. Verifique se ele está rodando.",
           offline: true,
         };
       case "network":

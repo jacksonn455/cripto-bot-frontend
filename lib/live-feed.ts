@@ -94,9 +94,9 @@ export function describeEvent(e: LiveEvent, ranges: StrategyRanges = DEFAULT_RAN
             at,
           };
     case "bot.paused":
-      return { kind: "bot", tone: "warning", title: "Bot pausado", detail: pauseReasonLabel(e.data.reason), at };
+      return { kind: "bot", tone: "warning", title: "Operações pausadas", detail: pauseReasonLabel(e.data.reason), at };
     case "bot.resumed":
-      return { kind: "bot", tone: "neutral", title: "Bot retomado", at };
+      return { kind: "bot", tone: "neutral", title: "Operações retomadas", at };
     case "bot.error":
       return { kind: "error", tone: "loss", title: "Erro no loop de execução", detail: e.data.message, mode: e.data.mode ?? undefined, at };
     case "bot.cycle": {

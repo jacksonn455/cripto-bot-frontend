@@ -37,7 +37,7 @@ export function OpenPositions({ mode }: { mode: Mode }) {
           Posições abertas <ModeBadge mode={mode} />
         </CardTitle>
         <CardDescription>
-          Atualiza a cada 10 s e na hora em que o bot abre ou fecha uma trade. O PnL não realizado é uma estimativa pelo
+          Atualiza a cada 10 s e na hora em que o Krypto abre ou fecha uma trade. O PnL não realizado é uma estimativa pelo
           último preço de 1 min, sem taxas.
         </CardDescription>
       </CardHeader>
@@ -53,7 +53,7 @@ export function OpenPositions({ mode }: { mode: Mode }) {
               description={
                 mode === "BACKTEST"
                   ? "Backtests terminam com todas as posições fechadas."
-                  : `O bot não tem posições abertas em ${mode} agora.`
+                  : `O Krypto não tem posições abertas em ${mode} agora.`
               }
             />
           }

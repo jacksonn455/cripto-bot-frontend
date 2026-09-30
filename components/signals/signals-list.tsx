@@ -121,7 +121,7 @@ export function SignalsList() {
                 ) : (
                   <>
                     Só aparecem aqui os momentos em que a estratégia quis comprar e o gerenciador de risco aprovou ou vetou.
-                    Enquanto o bot só diz “sem entrada”, esta lista fica vazia, e isso é esperado.
+                    Enquanto o Krypto só diz “sem entrada”, esta lista fica vazia, e isso é esperado.
                   </>
                 )}
                 {lastAny && (

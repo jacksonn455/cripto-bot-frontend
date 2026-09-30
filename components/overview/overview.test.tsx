@@ -69,7 +69,7 @@ describe("BotControls", () => {
     await user.click(screen.getByRole("button", { name: /pausar/i }));
     expect(api.calls).toHaveLength(0);
     await user.type(screen.getByLabelText(/motivo/i), "revisar estratégia");
-    await user.click(screen.getByRole("button", { name: "Pausar bot" }));
+    await user.click(screen.getByRole("button", { name: "Pausar operações" }));
 
     await waitFor(() => expect(api.calls.find((c) => c.path === "bot/pause")).toBeDefined());
     expect(JSON.parse(api.calls.find((c) => c.path === "bot/pause")!.body!)).toEqual({ reason: "revisar estratégia" });

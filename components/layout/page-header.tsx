@@ -35,7 +35,7 @@ export function PageHeader({ title, description, actions, showDataMode = true }:
         <p className="flex items-center gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
           <Info className="size-4 shrink-0 text-warning" aria-hidden />
           <span>
-            Exibindo dados de <strong>{mode}</strong>. O bot está rodando em <strong>{status.mode}</strong>.
+            Exibindo dados de <strong>{mode}</strong>. O Krypto está rodando em <strong>{status.mode}</strong>.
           </span>
         </p>
       )}

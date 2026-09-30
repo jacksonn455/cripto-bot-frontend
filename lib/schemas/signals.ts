@@ -3,7 +3,7 @@ import { isoDate, modeSchema, objectId, opt, type Mode } from "./common";
 
 /** risk.interface RejectReason. */
 export const REJECT_REASON_LABELS: Record<string, string> = {
-  BOT_PAUSED: "Bot pausado",
+  BOT_PAUSED: "Operações pausadas",
   RECONCILIATION_FAILED: "Reconciliação com a corretora falhou",
   SHORT_NOT_SUPPORTED: "Short não suportado (Binance Spot não vende a descoberto)",
   DAILY_LOSS_LIMIT: "Limite de perda diária",

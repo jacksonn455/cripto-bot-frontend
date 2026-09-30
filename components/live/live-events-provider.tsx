@@ -158,7 +158,7 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
           const event = toLiveEvent(type, json, Date.now(), msg.lastEventId || undefined);
           if (!event) return;
           invalidate(type);
-          if (event.type === "alert.critical") toast.error("Alerta do bot", { description: event.data.message });
+          if (event.type === "alert.critical") toast.error("Alerta do Krypto", { description: event.data.message });
           setRecent((list) => mergeEvents(list, [event], clearedAt.current));
           listeners.current.forEach((l) => l(event));
         });

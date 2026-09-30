@@ -133,7 +133,7 @@ export function MarketView() {
           </div>
           {live && (
             <p className="pb-1 text-xs text-muted-foreground">
-              O bot opera {live.symbols.join(", ")} em {live.timeframe} (regime em {live.regimeTimeframe}).
+              O Krypto opera {live.symbols.join(", ")} em {live.timeframe} (regime em {live.regimeTimeframe}).
             </p>
           )}
         </div>

@@ -56,7 +56,7 @@ describe("WhyNoTrades", () => {
     renderWithProviders(<WhyNoTrades />);
 
     const btc = (await screen.findByRole("heading", { name: "BTCUSDT" })).closest("section")!;
-    expect(within(btc).getByText("O bot está funcionando e esperando o cruzamento das médias. Tendência e RSI estão ok.")).toBeInTheDocument();
+    expect(within(btc).getByText("O Krypto está funcionando e esperando o cruzamento das médias. Tendência e RSI estão ok.")).toBeInTheDocument();
     expect(within(btc).getByText(/EMA20 está 0,10% abaixo da EMA50, falta subir 0,10%/)).toBeInTheDocument();
     expect(within(btc).getByText(/RSI atual 57,7 \(faixa aceita: 45 a 70\)/)).toBeInTheDocument();
     expect(within(btc).getByText("(aguardando)")).toBeInTheDocument();
@@ -85,7 +85,7 @@ describe("WhyNoTrades", () => {
       ),
     );
     renderWithProviders(<WhyNoTrades />);
-    expect(await screen.findByRole("alert")).toHaveTextContent("O bot está pausado");
+    expect(await screen.findByRole("alert")).toHaveTextContent("O Krypto está pausado");
   });
 });
 
@@ -94,7 +94,7 @@ describe("SignalsList empty state", () => {
     vi.stubGlobal("fetch", vi.fn(mockApi([{ path: "signals", body: { items: [], total: 0, page: 1, limit: 50 } }]).fetchMock));
     renderWithProviders(<SignalsList />);
     expect(await screen.findByText("Nenhum sinal de entrada ainda")).toBeInTheDocument();
-    expect(screen.getByText(/Enquanto o bot só diz “sem entrada”, esta lista fica vazia, e isso é esperado/)).toBeInTheDocument();
+    expect(screen.getByText(/Enquanto o Krypto só diz “sem entrada”, esta lista fica vazia, e isso é esperado/)).toBeInTheDocument();
   });
 
   it("shows the last signal when filters hide everything", async () => {

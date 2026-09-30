@@ -1,183 +1,123 @@
-# Trade Bot — Painel
+# Krypto
 
-Painel Next.js para **acompanhar e controlar** o trade bot (backend NestJS em `../backend`).
-Nenhuma lógica de trading roda aqui: o painel só lê dados do backend e envia os comandos
-pausar, retomar e kill switch.
+> Crypto market intelligence and automated strategies, with every trade and decision visible in one place.
 
-> Projeto educacional. Resultados passados, inclusive de backtest, não garantem resultados futuros.
+<p align="center">
+  <img src="./public/images/krypto-profile.png" alt="Krypto cybernetic dog mascot" width="360">
+</p>
 
-## Como rodar
+## Overview
 
-Requisitos: Node 20+ e pnpm (`corepack enable`, ou `corepack pnpm <comando>` se não puder habilitar).
+Krypto is a crypto trading platform for people who want to see how an automated strategy behaves
+before trusting it and while it runs. It watches the market, runs a trend-following strategy in
+**paper** (simulated) or **live** mode, and shows what it is doing and why: every signal, every
+trade, every risk decision, and how the results compare with backtests.
+
+This repository is the Krypto web app. The trading engine runs in a separate backend
+(`../backend`); the web app reads its data and sends only three commands: **pause**, **resume**
+and the **kill switch**.
+
+> Krypto is an educational project. Past results, including backtests, do not guarantee future
+> results. Trading crypto involves risk of loss.
+
+## What Krypto does
+
+- **Monitors the market.** Candles, trend indicators and the market regime for each traded coin.
+- **Runs a strategy.** Enters only when trend, momentum and the higher-timeframe regime line up,
+  with stop, target and a risk manager that can veto any entry.
+- **Explains itself.** When there are no trades, Krypto shows which conditions are missing and
+  when the next evaluation happens.
+- **Tracks performance.** Win rate, payoff, drawdown, Sharpe/Sortino and more, broken down by
+  strategy, coin, time of day and side (long/short).
+- **Keeps you in control.** Pause, resume or trigger the kill switch at any moment, with a
+  confirmation step for each.
+
+## Key features
+
+### Dashboard
+Performance at a glance: equity curve with drawdown, open positions with unrealized PnL, the last
+signal for each coin, trading status, and the health of the services behind it.
+
+### Trading & strategies
+- **Trades:** a filterable, sortable history with CSV export. Each trade opens a chart of its
+  period with entry, exit, stop and target marked.
+- **Markets:** candlestick charts with the same moving averages the strategy uses, plus the trades
+  taken on each chart.
+- **Backtests:** run the strategy on historical data with fees and slippage, walk-forward
+  validation and custom parameters. Each result comes with a plain-language reading (promising,
+  inconclusive, worse than holding, unstable…) and an always-visible overfitting notice.
+- **Funding:** a read-only ranking of perpetual funding rates, as context on market sentiment.
+
+### Performance
+Side-by-side comparison of **backtest × paper × live** using the same metrics, so you can tell
+whether real behavior matches what testing promised. Small samples are flagged as such.
+
+### Activity & notifications
+A live activity feed with entries, exits, risk vetoes, pauses, errors and alerts. It also fills in
+what happened while the app was closed. Critical alerts pop up as notifications, and a
+"Live" indicator shows the connection state.
+
+### AI analysis
+AI agents that read Krypto's data and answer questions such as *"Why were there no trades
+today?"* or *"Were the last stops noise or bad entries?"*. They review performance, trades,
+signals, risk and market regime. **They never open, close or change trades.**
+
+### Modes, clearly separated
+The header always shows which mode Krypto is running in. **LIVE** is highlighted in red as *real
+money*. You choose which mode's data to view (paper, live or backtest), and screens never mix
+modes unless you are explicitly comparing them.
+
+## Product experience
+
+- Light and dark themes, responsive from phone to desktop.
+- Clear empty, loading and error states. If the backend goes offline, Krypto keeps working,
+  shows a banner and reconnects on its own.
+- Optional password login, recommended whenever the app is reachable by others.
+
+## Technology
+
+Next.js (App Router) · React · TypeScript · Tailwind CSS with shadcn/ui · TanStack Query and
+Table · lightweight-charts and Recharts · Zod · Vitest.
+
+The browser never talks to the backend directly: a server-side proxy adds the API key, allows only
+the endpoints the app uses and handles backend outages.
+
+## Getting started
+
+Requirements: Node 20+ and pnpm (`corepack enable`).
 
 ```bash
-cp .env.example .env.local   # ajuste se o backend não estiver em localhost:8000
+cp .env.example .env.local   # point it to your backend if it's not on localhost:8000
 pnpm install
 pnpm dev                     # http://localhost:3000
 ```
 
-O backend precisa estar rodando (`cd ../backend && pnpm start:dev`). Se ele estiver fora do ar,
-o painel continua abrindo e mostra o aviso "Backend offline", tentando reconectar a cada 10 s.
+Start the backend too (`cd ../backend && pnpm start:dev`). Without it, the app still opens and
+shows a "backend offline" notice until it comes back.
 
-Produção: `pnpm build && pnpm start`.
+Main settings (see `.env.example` for all of them):
 
-## Variáveis de ambiente
-
-| Variável | Padrão | Uso |
-| --- | --- | --- |
-| `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | URL do backend. Fixada no momento do build. |
-| `API_URL` | — | Opcional. Sobrescreve a anterior em tempo de execução, sem rebuild. |
-| `API_KEY` | — | Opcional. Mesmo valor de `CONTROL_API_KEY` do backend. |
-
-### Como a chave fica protegida
-
-O navegador **nunca** chama o backend direto. Tudo passa pelo proxy `app/api/backend/[...path]`,
-que roda no servidor do Next.js e:
-
-- adiciona o header `X-Control-Api-Key` com `API_KEY` (a chave não vai para o navegador);
-- repassa só os endpoints que o painel usa (lista fixa na rota) e exige `POST` para os comandos;
-- responde `503 BACKEND_OFFLINE` / `504 BACKEND_TIMEOUT` quando o backend não responde.
-
-### Login do painel (opcional, recomendado fora da sua máquina)
-
-Sem `DASHBOARD_PASSWORD`, o painel fica aberto: **quem acessar a URL pode pausar o bot e acionar
-o kill switch**. Com a senha definida:
-
-- `proxy.ts` manda qualquer página para `/login` e responde 401 na API;
-- o proxy do backend confere a sessão de novo, porque é ele que envia os comandos;
-- a sessão é um cookie httpOnly assinado com HMAC-SHA256, válido por 7 dias;
-- o login limita a 5 tentativas erradas por minuto por IP;
-- sem sessão, o painel só renderiza a tela de login, sem consultas nem SSE.
-
-| Variável | Uso |
+| Variable | Purpose |
 | --- | --- |
-| `DASHBOARD_PASSWORD` | Liga o login. |
-| `SESSION_SECRET` | Opcional. Assina o cookie; se vazio, deriva da senha (trocar a senha desloga todos). |
+| `NEXT_PUBLIC_API_URL` / `API_URL` | Backend URL (build time / runtime override). |
+| `API_KEY` | Backend control key. Stays on the server, never reaches the browser. |
+| `DASHBOARD_PASSWORD` | Turns on the login screen. Without it, anyone with the URL can pause trading. |
+| `SESSION_SECRET` | Optional secret for the session cookie. |
 
-### Apontar para outro backend
+Production: `pnpm build && pnpm start`. Deployed on Vercel, with the backend on Render.
 
-```bash
-API_URL=http://192.168.0.10:8000 pnpm start   # sem rebuild
-# ou, em dev: defina NEXT_PUBLIC_API_URL no .env.local e reinicie o pnpm dev
-```
+## Development
 
-O backend limita 120 requisições por minuto por IP. Como tudo sai do servidor do painel, esse
-limite vale para todas as abas abertas juntas.
-
-## Deploy (Vercel)
-
-Publicado no domínio padrão da Vercel (`https://<projeto>.vercel.app`), com o backend no Render.
-
-| Variável | Valor |
-|---|---|
-| `NEXT_PUBLIC_BASE_PATH` | Não definir (painel na raiz). Para servir num subcaminho, ex. `/bot`; entra no build, exige redeploy. |
-| `API_URL` | URL do serviço no Render, sem `/` no final. |
-| `API_KEY` | Mesmo valor de `CONTROL_API_KEY` no Render (lá `API_KEY_REQUIRED_FOR_ALL=true`). |
-| `DASHBOARD_PASSWORD`, `SESSION_SECRET` | Login do painel. |
-| `TRUST_PROXY` | `true`: limite de tentativas de login por IP. |
-| `ENABLE_EXPERIMENTAL_COREPACK` | `1`: usa o pnpm do `packageManager`. |
-
-O `vercel.json` fixa as funções em `fra1` (Frankfurt), perto do backend no Render. A rota
-`/api/backend` tem `maxDuration` de 300 s: cobre o backtest, e o stream de eventos (SSE) é cortado
-nesse limite e reconecta sozinho.
-
-## Scripts
-
-| Comando | O que faz |
+| Command | What it does |
 | --- | --- |
-| `pnpm dev` | Servidor de desenvolvimento |
-| `pnpm build` / `pnpm start` | Build e servidor de produção |
-| `pnpm test` | Testes (schemas Zod, cliente da API, proxy, componentes) |
-| `pnpm test:contract` | Valida os schemas contra um backend real, só com GETs. Uso: `CONTRACT_API_URL=http://localhost:8000 pnpm test:contract` |
-| `pnpm typecheck` / `pnpm lint` | TypeScript e ESLint |
+| `pnpm dev` | Development server |
+| `pnpm build` / `pnpm start` | Production build and server |
+| `pnpm test` | Unit and component tests |
+| `pnpm test:contract` | Checks the data contracts against a running backend (read-only) |
+| `pnpm typecheck` / `pnpm lint` | TypeScript and ESLint |
 
-## Estrutura
+## Disclaimer
 
-```
-app/                      rotas (App Router) + proxy em app/api/backend
-components/
-  layout/                 cabeçalho, navegação, rodapé de risco, cabeçalho de página
-  mode/                   selo de modo do bot e seletor de modo dos dados
-  states/                 estados de erro, vazio, carregando e backend offline
-  ui/                     componentes shadcn/ui
-hooks/                    hooks de dados (TanStack Query) e contexto de modo
-lib/
-  api/                    cliente tipado (client.ts) e um método por endpoint (endpoints.ts)
-  schemas/                schemas Zod, gerados a partir dos DTOs do backend
-  format.ts               formatação pt-BR (moeda, %, datas, sinal +/−)
-test/                     fixtures de exemplo e teste de contrato
-```
-
-## Telas prontas
-
-- **Visão geral (`/`)**: cartões de desempenho, status do bot, controles (pausar, retomar e kill
-  switch com confirmação), último sinal por símbolo, curva de capital com drawdown e posições abertas.
-- **Trades (`/trades`)**: tabela com filtros, ordenação e paginação feitas no servidor, e exportação
-  CSV. Os filtros ficam na URL, então dá para recarregar ou compartilhar a visão filtrada.
-  O detalhe (`/trades/[id]`) mostra os candles do período da trade, com setas de entrada e saída e
-  linhas de entrada, stop e alvo.
-
-- **Análises (`/analytics`)**: métricas (win rate, payoff, profit factor, expectância, retorno
-  médio, Sharpe e Sortino por trade, maior sequência de perdas, tempo médio em posição, drawdown).
-  Também tem PnL por estratégia, símbolo, hora do dia e dia da semana (no fuso do navegador),
-  histograma do PnL e motivos de saída. O período filtra pela data de saída.
-  - A comparação "Backtest × paper × live" coloca as mesmas métricas lado a lado. Por padrão ela usa
-    a execução de backtest mais recente e destaca as diferenças grandes. Com menos de 30 trades num
-    modo, aparece o aviso de amostra pequena.
-
-- **Mercado (`/market`)**: candles com seletor de símbolo, timeframe e quantidade.
-  - As EMAs usam os mesmos períodos da estratégia (lidos de `/strategies`) e a mesma fórmula do
-    backend (conferida contra o `technicalindicators`). São só para exibição.
-  - Mostra as trades do modo selecionado como marcadores.
-- **Backtests (`/backtests`)**:
-  - Card "O que é backtest e para que serve esta tela" com checklist antes de confiar num resultado.
-  - Lista paginada (10/20/50) com resultado em %, comparação com comprar e segurar, pior queda e
-    uma leitura curta (veredito) de cada execução.
-  - "O que esse resultado quer dizer" no detalhe e logo após rodar: veredito (inconclusivo,
-    prejuízo, pior que segurar, instável, promissor) e explicações em linguagem simples
-    (amostra, taxas, acertos × payoff, walk-forward, overfitting). Regras em `lib/backtest-explain.ts`.
-  - Formulário completo: estratégia, símbolo, timeframe, período, saldo, taxa, slippage,
-    walk-forward e parâmetros da estratégia. Só os parâmetros alterados são enviados.
-  - Lista de execuções e detalhe de cada uma: parâmetros, métricas, curva de capital, janelas de
-    walk-forward, comparação com paper/live e trades.
-  - Comparação de duas execuções lado a lado, com os parâmetros diferentes destacados.
-  - Aviso de overfitting sempre visível, com o número de combinações de parâmetros já testadas.
-
-- **Funding (`/funding`)**: ranking do último scan, com busca, ordem (maiores, menores/negativas ou
-  maior magnitude) e taxa anualizada. Somente leitura.
-- **Sinais e eventos (`/signals`)**:
-  - Feed em tempo real com entradas, saídas, vetos de risco, sinais aprovados, pausa/retomada,
-    erros e alertas. Tem filtro por tipo e reconexão automática, e guarda os últimos 200 eventos
-    desde que o painel foi aberto.
-  - Lista de sinais avaliados pelo risco (`/signals`), com os vetados e o motivo de cada veto.
-    Se o backend não tiver o endpoint, aparece "endpoint indisponível".
-
-Componentes de gráfico reutilizáveis: `EquityChart`, `CandleChart`, `BarMetricChart` e `Histogram`
-(em `components/charts`).
-
-Bibliotecas de tabela e gráfico: TanStack Table **v9** (API nova: `useTable` + `tableFeatures`,
-diferente da v8), lightweight-charts v5 e Recharts.
-
-## Atualização em tempo real
-
-- Uma conexão SSE (`/events/stream`, via proxy) atualiza status, trades e relatórios assim que o bot
-  abre ou fecha uma trade, pausa ou dispara um alerta. Alertas críticos aparecem como notificação.
-  O indicador "Ao vivo" no cabeçalho mostra o estado da conexão, e ela reconecta sozinha.
-- A cada conexão e reconexão, o painel carrega o histórico (`/events/recent`, 30 dias no backend)
-  e junta com o que chega ao vivo, sem duplicar (cada evento tem `id`). Assim o feed mostra também
-  o que aconteceu com o painel fechado ou durante uma queda.
-- Se o backend cair e voltar, as consultas que falharam são refeitas sozinhas.
-- A Visão geral mostra a saúde do MongoDB e do Redis (`/health`).
-- Além disso, há polling leve: status e posições a cada 10 s, preços a cada 15 s e o resto a cada
-  30 s. O polling pausa quando a aba fica oculta.
-- O alerta de "loop parado" usa o heartbeat `lastPollAt`: dispara depois de 3 intervalos de polling
-  sem notícia, e nunca antes de 2 min.
-
-## Modos
-
-- O **selo no cabeçalho** mostra em que modo o bot está rodando (`/bot/status`: PAPER ou LIVE).
-  LIVE aparece em vermelho, com o aviso "dinheiro real".
-- O seletor **"Dados:"** escolhe de qual modo são os dados exibidos (PAPER, LIVE ou BACKTEST).
-  O padrão é PAPER, e a escolha fica salva em cookie. Não existe a opção "todos": as telas
-  nunca misturam modos, exceto a comparação entre modos, que é explícita.
-- Quando o modo dos dados é diferente do modo do bot, cada tela mostra um aviso.
+Krypto is an educational project, not financial advice. It does not promise returns, and no
+strategy, backtest or AI analysis can remove the risk of loss. Use paper mode first and only
+trade live with money you can afford to lose.

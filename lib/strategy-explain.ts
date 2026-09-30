@@ -46,7 +46,7 @@ const SHORT_NO_CROSS = /short:\s*sem cruzamento/i;
 const SHORT_RSI_OUT = /short:\s*RSI fora da faixa/i;
 const REGIME_UNDEFINED = /regime indefinido/i;
 
-export const NO_ENTRY_TOOLTIP = "O bot avaliou e não encontrou motivo para entrar (comprar ou vender). Isso é normal.";
+export const NO_ENTRY_TOOLTIP = "O Krypto avaliou e não encontrou motivo para entrar (comprar ou vender). Isso é normal.";
 
 /** Translates the strategy's technical reason into plain Portuguese. Unknown text passes through. */
 export function translateReason(reason: string, ranges: StrategyRanges = DEFAULT_RANGES): string {
@@ -109,9 +109,9 @@ export function summarize(c: Conditions): string {
     case "unknown":
       return "Ainda não há avaliação deste símbolo desde que o backend iniciou.";
     case "no-data":
-      return "O bot está funcionando, mas ainda não tem candles suficientes para avaliar este símbolo.";
+      return "O Krypto está funcionando, mas ainda não tem candles suficientes para avaliar este símbolo.";
     case "position":
-      return "Há uma posição aberta: agora o bot espera o sinal de saída, não de entrada.";
+      return "Há uma posição aberta: agora o Krypto espera o sinal de saída, não de entrada.";
     case "exit":
       return "O último candle deu sinal de saída da posição.";
     case "entry":
@@ -126,7 +126,7 @@ export function summarize(c: Conditions): string {
       const wait = missing.map((k) => labels[k]);
       const waitText = wait.length > 1 ? `${wait.slice(0, -1).join(", ")} e ${wait.at(-1)}` : wait[0];
       const okText = ok.length === 0 ? "" : ok.length === 1 ? ` ${ok[0]} está ok.` : ` ${ok.slice(0, -1).join(", ")} e ${ok.at(-1)} estão ok.`;
-      const prefix = c.side === "short" ? "A tendência maior não está de alta, então o bot avalia o short: está" : "O bot está funcionando e";
+      const prefix = c.side === "short" ? "A tendência maior não está de alta, então o Krypto avalia o short: está" : "O Krypto está funcionando e";
       return `${prefix} esperando ${waitText ?? "uma condição de entrada"}.${okText}`;
     }
   }

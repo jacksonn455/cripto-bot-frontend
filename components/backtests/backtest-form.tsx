@@ -110,7 +110,7 @@ export function BacktestForm({ strategies }: { strategies: Strategies }) {
       <CardHeader>
         <CardTitle>Rodar backtest</CardTitle>
         <CardDescription>
-          Simula a estratégia sobre candles históricos da Binance, com taxas e slippage, vendo o mercado como o bot ao vivo:
+          Simula a estratégia sobre candles históricos da Binance, com taxas e slippage, vendo o mercado como o Krypto ao vivo:
           mesma janela de candles, histórico de aquecimento antes do início e filtro de regime no próprio timeframe. As
           trades ficam gravadas como BACKTEST.
         </CardDescription>
@@ -144,7 +144,7 @@ export function BacktestForm({ strategies }: { strategies: Strategies }) {
                 <>
                   Separe por vírgula (até {MAX_SYMBOLS}). Com mais de um, o saldo é dividido igualmente.{" "}
                   <button type="button" className="underline" onClick={() => set("symbols", strategies.live.symbols.join(", "))}>
-                    Usar os do bot
+                    Usar os do Krypto
                   </button>
                 </>
               }
@@ -162,7 +162,7 @@ export function BacktestForm({ strategies }: { strategies: Strategies }) {
             <Field
               id="regimeTimeframe"
               label="Timeframe do regime"
-              hint={values.regimeTimeframe === strategies.live.regimeTimeframe ? "Igual ao do bot ao vivo." : `O bot ao vivo usa ${strategies.live.regimeTimeframe}.`}
+              hint={values.regimeTimeframe === strategies.live.regimeTimeframe ? "Igual ao do Krypto ao vivo." : `O Krypto ao vivo usa ${strategies.live.regimeTimeframe}.`}
             >
               <Select value={values.regimeTimeframe} onValueChange={(v) => set("regimeTimeframe", v)}>
                 <SelectTrigger id="regimeTimeframe" size="sm" className="w-full"><SelectValue /></SelectTrigger>
@@ -204,7 +204,7 @@ export function BacktestForm({ strategies }: { strategies: Strategies }) {
                 <span>
                   <span className="font-medium">Incluir Short</span>
                   <span className="block text-xs text-muted-foreground">
-                    Espelho das regras de compra: vende a descoberto quando a tendência maior é de baixa. No bot ao vivo está{" "}
+                    Espelho das regras de compra: vende a descoberto quando a tendência maior é de baixa. No Krypto ao vivo está{" "}
                     {shortParam.value === 1 ? "ligado" : "desligado"}. Para medir o efeito, rode o mesmo período com e sem.
                   </span>
                 </span>

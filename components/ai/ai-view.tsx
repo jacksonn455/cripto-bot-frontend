@@ -31,7 +31,7 @@ const CONFIDENCE: Record<AnalysisOutput["confidence"], string> = { low: "baixa",
 const EXAMPLES: Partial<Record<AgentKey, string>> = {
   "performance-analyst": "O resultado em PAPER está coerente com os backtests? Long e Short se comportam diferente?",
   "trade-reviewer": "Os últimos stops foram ruído ou a entrada estava errada?",
-  "signal-explainer": "Por que o bot não entrou em nenhum trade hoje?",
+  "signal-explainer": "Por que o Krypto não entrou em nenhum trade hoje?",
   "risk-analyst": "Estou concentrado demais em BTC e ETH ao mesmo tempo?",
   "market-analyst": "Qual o regime atual de cada símbolo e o que isso significa para a estratégia?",
 };
@@ -42,7 +42,7 @@ export function AiView() {
     <>
       <PageHeader
         title="Análise com IA"
-        description="Agentes da OpenAI que leem os dados do bot e explicam, avaliam e recomendam. Eles nunca abrem, fecham ou alteram trades."
+        description="Agentes da OpenAI que leem os dados do Krypto e explicam, avaliam e recomendam. Eles nunca abrem, fecham ou alteram trades."
       />
       <QueryState query={status} loading={<Skeleton className="h-64 w-full" />}>
         {(s) => <AiContent status={s} />}
@@ -161,7 +161,7 @@ function SafetyNote({ status }: { status: AiStatus }) {
       <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden />
       <span>
         Somente leitura: os agentes consultam trades, sinais, relatórios, parâmetros e mercado, mas não têm como enviar ordens
-        nem pausar o bot. Toda recomendação é para você avaliar. Modelo: <code>{status.model}</code>
+        nem pausar o Krypto. Toda recomendação é para você avaliar. Modelo: <code>{status.model}</code>
         {status.tracingEnabled ? " · tracing ligado (dados vão ao painel da OpenAI)" : ""}. Não é recomendação financeira.
       </span>
     </p>

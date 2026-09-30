@@ -21,12 +21,12 @@ describe("conditionsFrom + summarize", () => {
   it("only the cross missing", () => {
     const c = conditionsFrom("HOLD", "sem cruzamento EMA rapida/lenta");
     expect(c).toEqual({ kind: "waiting", side: "long", cross: false, regime: true, rsi: true });
-    expect(summarize(c)).toBe("O bot está funcionando e esperando o cruzamento das médias. Tendência e RSI estão ok.");
+    expect(summarize(c)).toBe("O Krypto está funcionando e esperando o cruzamento das médias. Tendência e RSI estão ok.");
   });
 
   it("several missing", () => {
     const c = conditionsFrom("HOLD", "regime nao esta em alta; sem cruzamento EMA rapida/lenta");
-    expect(summarize(c)).toBe("O bot está funcionando e esperando o cruzamento das médias e a tendência maior de alta. RSI está ok.");
+    expect(summarize(c)).toBe("O Krypto está funcionando e esperando o cruzamento das médias e a tendência maior de alta. RSI está ok.");
   });
 
   it("entry, open position, no data and nothing yet", () => {
@@ -76,7 +76,7 @@ describe("short side", () => {
     const c = conditionsFrom("HOLD", "short: sem cruzamento EMA rapida abaixo da lenta");
     expect(c).toEqual({ kind: "waiting", side: "short", cross: false, regime: true, rsi: true });
     expect(summarize(c)).toBe(
-      "A tendência maior não está de alta, então o bot avalia o short: está esperando o cruzamento das médias para baixo. Tendência e RSI estão ok.",
+      "A tendência maior não está de alta, então o Krypto avalia o short: está esperando o cruzamento das médias para baixo. Tendência e RSI estão ok.",
     );
     expect(conditionsFrom("ENTER_SHORT", "EMA20 cruzou abaixo")).toMatchObject({ kind: "entry", side: "short" });
     expect(summarize(conditionsFrom("ENTER_SHORT", "x"))).toMatch(/venda a descoberto/);

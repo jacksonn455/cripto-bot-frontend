@@ -1,12 +1,13 @@
 "use client";
 
-import { Bot, Loader2, LogIn } from "lucide-react";
+import { Loader2, LogIn } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { BRAND_NAME, BrandMark } from "@/components/layout/brand";
 import { withBasePath } from "@/lib/base-path";
 
 /** Only same-app relative paths, so ?next= can't send the user to another site. */
@@ -46,11 +47,13 @@ export function LoginForm() {
   return (
     <main className="flex min-h-full flex-1 items-center justify-center p-4">
       <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Bot className="size-5" aria-hidden /> Trade Bot · Painel
-          </CardTitle>
-          <CardDescription>Este painel pode pausar o bot e acionar o kill switch. Entre com a senha configurada no servidor.</CardDescription>
+        <CardHeader className="items-center text-center">
+          <BrandMark size={96} decorative={false} className="mx-auto mb-2 ring-2" />
+          <CardTitle className="text-xl">{BRAND_NAME}</CardTitle>
+          <CardDescription>
+            Inteligência de mercado cripto e acompanhamento das suas estratégias. Este painel pode pausar as operações e
+            acionar o kill switch: entre com a senha configurada no servidor.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={submit} className="space-y-4">

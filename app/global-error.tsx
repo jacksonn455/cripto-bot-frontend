@@ -9,8 +9,8 @@ export default function GlobalError({ reset }: { error: Error & { digest?: strin
     <html lang="pt-BR">
       <body style={{ fontFamily: "system-ui, sans-serif", background: "#fff", color: "#111", padding: 32 }}>
         <main role="alert" style={{ maxWidth: 560, margin: "0 auto", textAlign: "center" }}>
-          <h1 style={{ fontSize: 20 }}>O painel encontrou um erro inesperado</h1>
-          <p style={{ color: "#555" }}>Nenhuma ação foi enviada ao bot. Tente recarregar a página.</p>
+          <h1 style={{ fontSize: 20 }}>O Krypto encontrou um erro inesperado</h1>
+          <p style={{ color: "#555" }}>Nenhuma ação foi enviada ao Krypto. Tente recarregar a página.</p>
           <button
             onClick={reset}
             style={{ marginTop: 12, padding: "8px 16px", borderRadius: 8, border: "1px solid #ccc", cursor: "pointer" }}

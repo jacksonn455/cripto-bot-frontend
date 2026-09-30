@@ -82,7 +82,7 @@ function PauseDialog({ open, onClose, status }: DialogProps) {
   const submit = () =>
     pause.mutate(reason.trim() || undefined, {
       onSuccess: (state) => {
-        toast.success("Bot pausado", { description: pauseReasonLabel(state.pauseReason) });
+        toast.success("Operações pausadas", { description: pauseReasonLabel(state.pauseReason) });
         setReason("");
         onClose();
       },
@@ -97,7 +97,7 @@ function PauseDialog({ open, onClose, status }: DialogProps) {
       }}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Pausar o bot ({status.mode})?</DialogTitle>
+          <DialogTitle>Pausar as operações ({status.mode})?</DialogTitle>
           <DialogDescription>
             Novas entradas ficam bloqueadas. Posições abertas continuam sendo monitoradas e podem ser fechadas pelo stop
             ou alvo.
@@ -119,7 +119,7 @@ function PauseDialog({ open, onClose, status }: DialogProps) {
             <Button variant="outline">Cancelar</Button>
           </DialogClose>
           <Button onClick={submit} disabled={pause.isPending}>
-            {pause.isPending ? "Pausando…" : "Pausar bot"}
+            {pause.isPending ? "Pausando…" : "Pausar operações"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -132,7 +132,7 @@ function ResumeDialog({ open, onClose, status }: DialogProps) {
   const submit = () =>
     resume.mutate(undefined, {
       onSuccess: () => {
-        toast.success("Bot retomado", { description: "Novas entradas voltam a ser permitidas." });
+        toast.success("Operações retomadas", { description: "Novas entradas voltam a ser permitidas." });
         onClose();
       },
     });
@@ -146,9 +146,9 @@ function ResumeDialog({ open, onClose, status }: DialogProps) {
       }}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Retomar o bot ({status.mode})?</DialogTitle>
+          <DialogTitle>Retomar as operações ({status.mode})?</DialogTitle>
           <DialogDescription>
-            Pausado por: {pauseReasonLabel(status.pauseReason)}. Ao retomar, o bot volta a abrir posições
+            Pausado por: {pauseReasonLabel(status.pauseReason)}. Ao retomar, o Krypto volta a abrir posições
             {status.mode === "LIVE" ? " com dinheiro real." : " simuladas."}
           </DialogDescription>
         </DialogHeader>
@@ -158,7 +158,7 @@ function ResumeDialog({ open, onClose, status }: DialogProps) {
             <Button variant="outline">Cancelar</Button>
           </DialogClose>
           <Button onClick={submit} disabled={resume.isPending}>
-            {resume.isPending ? "Retomando…" : "Retomar bot"}
+            {resume.isPending ? "Retomando…" : "Retomar operações"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -185,7 +185,7 @@ export function KillSwitchDialog({ open, onClose, status }: DialogProps) {
       onSuccess: (r) => {
         setResult(r);
         toast.warning("Kill switch executado", {
-          description: `${r.canceledOrders} ordem(ns) cancelada(s), ${r.closedPositions} posição(ões) fechada(s). Bot pausado.`,
+          description: `${r.canceledOrders} ordem(ns) cancelada(s), ${r.closedPositions} posição(ões) fechada(s). Operações pausadas.`,
         });
       },
     });
@@ -210,7 +210,7 @@ export function KillSwitchDialog({ open, onClose, status }: DialogProps) {
               </div>
             </dl>
             <p className="text-sm text-muted-foreground">
-              O bot foi pausado. Falhas individuais não interrompem o kill switch e só aparecem no log do backend: confira
+              As operações foram pausadas. Falhas individuais não interrompem o kill switch e só aparecem no log do backend: confira
               a lista de posições abertas.
             </p>
             <DialogFooter>
@@ -232,7 +232,7 @@ export function KillSwitchDialog({ open, onClose, status }: DialogProps) {
                       fechar a mercado todas as {status.openTrades} posição(ões) abertas
                       {status.mode === "LIVE" && <strong> com dinheiro real</strong>};
                     </li>
-                    <li>pausar o bot.</li>
+                    <li>pausar o Krypto.</li>
                   </ul>
                 </div>
               </DialogDescription>

@@ -57,7 +57,7 @@ export function ModeComparison({ period, runId, onRunChange }: Props) {
             <EmptyState
               icon={Scale}
               title="Nada para comparar ainda"
-              description="Nenhum modo tem trades fechadas com esses filtros. Rode um backtest e deixe o bot operar em paper para comparar."
+              description="Nenhum modo tem trades fechadas com esses filtros. Rode um backtest e deixe o Krypto operar em paper para comparar."
             />
           }
         >

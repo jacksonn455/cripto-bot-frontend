@@ -72,9 +72,9 @@ export function BotStatusPanel({ status }: { status: BotStatus }) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          Status do bot <ModeBadge mode={status.mode} />
+          Status das operações <ModeBadge mode={status.mode} />
         </CardTitle>
-        <CardDescription>Estado atual da execução. Os comandos agem sobre o modo em que o bot está rodando.</CardDescription>
+        <CardDescription>Estado atual da execução. Os comandos agem sobre o modo em que o Krypto está rodando.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <BotControls status={status} />

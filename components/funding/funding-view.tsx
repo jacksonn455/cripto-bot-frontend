@@ -73,7 +73,7 @@ function Explainer() {
         <CardDescription className="flex items-start gap-2 pt-1">
           <Eye className="mt-0.5 size-4 shrink-0 text-mode-paper" aria-hidden />
           <span>
-            <strong className="text-foreground">Somente leitura.</strong> O bot opera no mercado à vista (spot) e não paga
+            <strong className="text-foreground">Somente leitura.</strong> O Krypto opera no mercado à vista (spot) e não paga
             nem recebe funding. Nada aqui gera ordens: é um termômetro do mercado.
           </span>
         </CardDescription>
@@ -171,9 +171,9 @@ function Thermometer({ data, botSymbols, now }: { data: FundingPage; botSymbols:
         </div>
 
         <div className="space-y-2">
-          <h3 className="text-sm font-medium">Moedas que o bot opera</h3>
+          <h3 className="text-sm font-medium">Moedas que o Krypto opera</h3>
           <p className="text-xs text-muted-foreground">
-            O funding delas não afeta as trades do bot (ele opera à vista), mas mostra como o mercado de futuros está
+            O funding delas não afeta as trades do Krypto (ele opera à vista), mas mostra como o mercado de futuros está
             posicionado nessas moedas.
           </p>
           <div className="grid gap-3 md:grid-cols-2">
@@ -233,7 +233,7 @@ function RankingTable({ items, offset, botSymbols, now }: { items: FundingRankin
                   <span className="inline-flex items-center gap-1.5">
                     {r.symbol}
                     {botSymbols.includes(r.symbol) && (
-                      <span className="rounded border border-mode-paper/50 px-1 text-[0.65rem] font-semibold text-mode-paper">moeda do bot</span>
+                      <span className="rounded border border-mode-paper/50 px-1 text-[0.65rem] font-semibold text-mode-paper">moeda do Krypto</span>
                     )}
                   </span>
                 </TableCell>

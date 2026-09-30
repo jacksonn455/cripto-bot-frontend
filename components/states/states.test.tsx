@@ -24,7 +24,7 @@ describe("ErrorState", () => {
 
 describe("EmptyState", () => {
   it("renders title and explanation", () => {
-    render(<EmptyState title="Nenhuma trade" description="O bot ainda não abriu posições neste modo." />);
+    render(<EmptyState title="Nenhuma trade" description="O Krypto ainda não abriu posições neste modo." />);
     expect(screen.getByText("Nenhuma trade")).toBeInTheDocument();
     expect(screen.getByText(/ainda não abriu posições/)).toBeInTheDocument();
   });

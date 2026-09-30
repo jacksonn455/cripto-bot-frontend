@@ -24,7 +24,7 @@ export function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
                   active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
                 )}
               >
-                <Icon className="size-4" aria-hidden />
+                <Icon className={cn("size-4", active && "text-brand")} aria-hidden />
                 {label}
               </Link>
             </li>

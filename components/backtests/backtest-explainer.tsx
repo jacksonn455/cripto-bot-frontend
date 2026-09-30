@@ -24,14 +24,14 @@ export function BacktestExplainer() {
         <section className="space-y-1">
           <h3 className="font-medium">O que é</h3>
           <p className="text-muted-foreground">
-            Um teste da estratégia no passado: o bot “finge” que estava operando em um período que já aconteceu e mostra
+            Um teste da estratégia no passado: o Krypto “finge” que estava operando em um período que já aconteceu e mostra
             quanto teria ganho ou perdido. Nenhuma ordem é enviada e nenhum dinheiro é usado.
           </p>
         </section>
         <section className="space-y-1">
           <h3 className="font-medium">Como funciona aqui</h3>
           <p className="text-muted-foreground">
-            A simulação vê o mercado como o bot ao vivo: candle a candle, com as mesmas regras de risco, cobrando taxas e
+            A simulação vê o mercado como o Krypto ao vivo: candle a candle, com as mesmas regras de risco, cobrando taxas e
             slippage (a diferença entre o preço esperado e o preço executado). As trades ficam gravadas como BACKTEST.
           </p>
         </section>

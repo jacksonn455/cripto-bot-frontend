@@ -148,7 +148,7 @@ export function LiveFeed() {
           </span>
         </CardTitle>
         <CardDescription>
-          Tudo o que o bot fez: entradas, saídas, vetos de risco, avaliações sem entrada, backtests, erros e alertas. Mostra
+          Tudo o que o Krypto fez: entradas, saídas, vetos de risco, avaliações sem entrada, backtests, erros e alertas. Mostra
           os últimos {MAX_RECENT} eventos, inclusive o que aconteceu com o painel fechado (o backend guarda 30 dias).
           Avaliações repetidas do mesmo símbolo e motivo aparecem agrupadas.
           {!historyAvailable && " Este backend não tem histórico de eventos: aparecem só os eventos desde que o painel abriu."}
@@ -182,7 +182,7 @@ export function LiveFeed() {
             title={items.length === 0 ? "Nenhum evento ainda" : "Nenhum evento nos tipos selecionados"}
             description={
               items.length === 0
-                ? "Os eventos aparecem aqui a cada candle avaliado, e quando o bot abrir ou fechar uma trade, pausar ou registrar um erro."
+                ? "Os eventos aparecem aqui a cada candle avaliado, e quando o Krypto abrir ou fechar uma trade, pausar ou registrar um erro."
                 : undefined
             }
           />
@@ -199,7 +199,7 @@ export function LiveFeed() {
                         Sem registros de avaliação de {row.symbol} entre {clock.format(row.from)} e {clock.format(row.to)}
                       </strong>{" "}
                       <span className="text-muted-foreground">
-                        ({formatDuration(row.to - row.from)}, em {formatDate(row.from)}). O bot provavelmente estava desligado;
+                        ({formatDuration(row.to - row.from)}, em {formatDate(row.from)}). O Krypto provavelmente estava desligado;
                         oportunidades nesse intervalo não foram avaliadas.
                       </span>
                     </p>

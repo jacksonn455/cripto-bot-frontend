@@ -113,7 +113,7 @@ describe("LiveFeed history", () => {
     await waitFor(() => expect(within(screen.getByRole("list")).getAllByRole("listitem")).toHaveLength(2));
     expect(screen.getByText("ETHUSDT: sem entrada")).toBeInTheDocument();
     expect(screen.getByText("Média rápida ainda não cruzou a lenta")).toBeInTheDocument();
-    expect(screen.getByText("Bot pausado")).toBeInTheDocument();
+    expect(screen.getByText("Operações pausadas")).toBeInTheDocument();
 
     // Same id arriving on the stream (e.g. history loaded right after it was sent): shown once.
     act(() => {

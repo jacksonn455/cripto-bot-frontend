@@ -71,7 +71,7 @@ export function TradesView() {
                   ? "Ajuste ou limpe os filtros para ver outras trades."
                   : mode === "BACKTEST"
                     ? "As trades de backtest aparecem aqui depois que você roda um backtest."
-                    : "Cada operação que o bot abrir neste modo vai aparecer aqui."
+                    : "Cada operação que o Krypto abrir neste modo vai aparecer aqui."
               }
               action={
                 hasFilters ? (
