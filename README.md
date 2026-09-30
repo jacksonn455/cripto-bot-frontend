@@ -66,11 +66,11 @@ limite vale para todas as abas abertas juntas.
 
 ## Deploy (Vercel)
 
-Publicado em `https://jacksonmagnabosco.dev/bot`, com o backend no Render.
+Publicado no domínio padrão da Vercel (`https://<projeto>.vercel.app`), com o backend no Render.
 
 | Variável | Valor |
 |---|---|
-| `NEXT_PUBLIC_BASE_PATH` | `/bot`. Entra no build: mudou, precisa de redeploy. Vazio = raiz do domínio. |
+| `NEXT_PUBLIC_BASE_PATH` | Não definir (painel na raiz). Para servir num subcaminho, ex. `/bot`; entra no build, exige redeploy. |
 | `API_URL` | URL do serviço no Render, sem `/` no final. |
 | `API_KEY` | Mesmo valor de `CONTROL_API_KEY` no Render (lá `API_KEY_REQUIRED_FOR_ALL=true`). |
 | `DASHBOARD_PASSWORD`, `SESSION_SECRET` | Login do painel. |
