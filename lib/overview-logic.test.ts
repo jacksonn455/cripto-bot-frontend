@@ -73,3 +73,17 @@ describe("unrealizedPnl", () => {
     expect(unrealizedPnl({ side: "LONG", entryPrice: 100, qty: 2 }, 95).pnl).toBe(-10);
   });
 });
+
+describe("loopHealth with the backend worker status", () => {
+  const base = { executionEnabled: true, pollIntervalSeconds: 60, lastPollAt: ago(0) };
+  const worker = (state: "ONLINE" | "OFFLINE" | "STARTING" | "DISABLED", heartbeatAgoMs: number) =>
+    ({ state, lastHeartbeatAt: ago(heartbeatAgoMs), heartbeatTimeoutSeconds: 300 }) as never;
+
+  it("trusts the backend verdict over the in-memory lastPollAt", () => {
+    // lastPollAt looks fresh, but the persisted heartbeat says the worker is down.
+    expect(loopHealth({ ...base, worker: worker("OFFLINE", 2 * 3_600_000) }, NOW)).toMatchObject({ state: "stale", lagMs: 2 * 3_600_000 });
+    expect(loopHealth({ ...base, worker: worker("ONLINE", 8_000) }, NOW)).toMatchObject({ state: "ok", lagMs: 8_000 });
+    expect(loopHealth({ ...base, worker: worker("STARTING", 0) }, NOW).state).toBe("starting");
+    expect(loopHealth({ ...base, worker: worker("DISABLED", 0) }, NOW).state).toBe("disabled");
+  });
+});

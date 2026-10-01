@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Trash2,
   Zap,
+  Server,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ModeBadge } from "@/components/mode/mode-badge";
@@ -39,6 +40,7 @@ const ICON: Record<FeedKind, typeof Activity> = {
   bot: Pause,
   error: AlertTriangle,
   alert: AlertOctagon,
+  worker: Server,
 };
 
 const TONE: Record<FeedTone, string> = {
@@ -194,15 +196,27 @@ export function LiveFeed() {
                 return (
                   <li key={row.key} role="note" className="flex items-start gap-3 bg-warning/10 px-3 py-2.5">
                     <PowerOff className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
-                    <p className="text-sm">
-                      <strong>
-                        Sem registros de avaliação de {row.symbol} entre {clock.format(row.from)} e {clock.format(row.to)}
-                      </strong>{" "}
-                      <span className="text-muted-foreground">
-                        ({formatDuration(row.to - row.from)}, em {formatDate(row.from)}). O Krypto provavelmente estava desligado;
-                        oportunidades nesse intervalo não foram avaliadas.
-                      </span>
-                    </p>
+                    {row.downtime ? (
+                      <p className="text-sm">
+                        <strong>
+                          Krypto worker offline de {clock.format(row.downtime.from)} a {clock.format(row.downtime.to)}
+                        </strong>{" "}
+                        <span className="text-muted-foreground">
+                          ({formatDuration(row.downtime.to - row.downtime.from)}, em {formatDate(row.downtime.from)}) — confirmado pelo
+                          heartbeat do backend. {row.symbol} não foi avaliado entre {clock.format(row.from)} e {clock.format(row.to)}.
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="text-sm">
+                        <strong>
+                          Sem registros de avaliação de {row.symbol} entre {clock.format(row.from)} e {clock.format(row.to)}
+                        </strong>{" "}
+                        <span className="text-muted-foreground">
+                          ({formatDuration(row.to - row.from)}, em {formatDate(row.from)}). O Krypto provavelmente estava desligado;
+                          oportunidades nesse intervalo não foram avaliadas.
+                        </span>
+                      </p>
+                    )}
                   </li>
                 );
               }

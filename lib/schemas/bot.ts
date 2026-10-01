@@ -14,6 +14,35 @@ export const signalSnapshotSchema = z.object({
 });
 export type SignalSnapshot = z.infer<typeof signalSnapshotSchema>;
 
+/** WorkerHeartbeatService.WorkerStatus — derived by the backend from the heartbeat the worker persists. */
+export const workerStatusSchema = z.object({
+  state: z.enum(["ONLINE", "OFFLINE", "STARTING", "DISABLED"]),
+  /** Why it is not ONLINE, e.g. "worker heartbeat expired". */
+  reason: z.string().nullable(),
+  instanceId: z.string().nullable(),
+  startedAt: isoDate.nullable(),
+  uptimeSeconds: z.number().nullable(),
+  lastHeartbeatAt: isoDate.nullable(),
+  lastEvaluationAt: isoDate.nullable(),
+  nextEvaluationAt: isoDate.nullable(),
+  lastErrorAt: isoDate.nullable(),
+  lastError: z.string().nullable(),
+  stoppedAt: isoDate.nullable(),
+  stopReason: z.string().nullable(),
+  heartbeatTimeoutSeconds: z.number(),
+  /** Latest gap the worker found when it started (it was not running in between). */
+  lastDowntime: z
+    .object({
+      from: isoDate,
+      to: isoDate,
+      durationSeconds: z.number(),
+      lastEvaluationAt: isoDate.nullable(),
+      previousStopReason: z.string().nullable(),
+    })
+    .nullable(),
+});
+export type WorkerStatus = z.infer<typeof workerStatusSchema>;
+
 /** ControlService.BotStatus — GET /bot/status. The bot itself only runs PAPER or LIVE. */
 export const botStatusSchema = z.object({
   mode: z.enum(["PAPER", "LIVE"]),
@@ -32,6 +61,8 @@ export const botStatusSchema = z.object({
   /** Free balance of the quote asset (USDT) — not mark-to-market equity. 0 when the balance call fails. */
   equity: z.number(),
   lastError: z.string().nullable(),
+  /** Absent on backends older than the persisted worker heartbeat. */
+  worker: opt(workerStatusSchema),
 });
 export type BotStatus = z.infer<typeof botStatusSchema>;
 

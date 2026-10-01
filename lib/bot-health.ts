@@ -12,13 +12,22 @@ const MIN_STALE_MS = 2 * 60_000;
 const MISSED_TICKS = 3;
 
 /**
- * Whether the polling loop is alive, based on its heartbeat (lastPollAt). lastCycleAt is not
- * used: it only moves when a new candle closes, i.e. once per strategy timeframe.
+ * Whether the polling loop is alive. The backend's verdict (`worker`, derived from the heartbeat
+ * the worker persists) wins when present; older backends fall back to the in-memory lastPollAt.
+ * lastCycleAt is never used: it only moves when a new candle closes (once per timeframe).
  */
 export function loopHealth(
-  status: Pick<BotStatus, "executionEnabled" | "lastPollAt" | "pollIntervalSeconds">,
+  status: Pick<BotStatus, "executionEnabled" | "lastPollAt" | "pollIntervalSeconds"> & Partial<Pick<BotStatus, "worker">>,
   now: number,
 ): LoopHealth {
+  const w = status.worker;
+  if (w) {
+    if (w.state === "DISABLED") return { state: "disabled" };
+    if (w.state === "STARTING") return { state: "starting" };
+    const lagMs = w.lastHeartbeatAt ? now - new Date(w.lastHeartbeatAt).getTime() : Number.POSITIVE_INFINITY;
+    if (w.state === "OFFLINE") return { state: "stale", lagMs, limitMs: w.heartbeatTimeoutSeconds * 1000 };
+    return { state: "ok", lagMs: Math.max(0, lagMs) };
+  }
   if (!status.executionEnabled) return { state: "disabled" };
   if (!status.lastPollAt) return { state: "starting" };
   const lagMs = now - new Date(status.lastPollAt).getTime();

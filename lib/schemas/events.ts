@@ -65,6 +65,25 @@ export const sseEventSchemas = {
     /** Same candle evaluated again after a backend restart. */
     reevaluation: z.boolean().nullish(),
   }),
+  /** Worker process started; `downtime` = the gap since the previous run's last heartbeat (an outage). */
+  "worker.started": z.object({
+    instanceId: z.string(),
+    startedAt: z.iso.datetime({ offset: true }),
+    previousHeartbeatAt: z.iso.datetime({ offset: true }).nullish(),
+    mode: modeSchema.nullish(),
+    downtime: z
+      .object({
+        from: z.iso.datetime({ offset: true }),
+        to: z.iso.datetime({ offset: true }),
+        durationSeconds: z.number(),
+        lastEvaluationAt: z.iso.datetime({ offset: true }).nullish(),
+        previousStopReason: z.string().nullish(),
+      })
+      .nullish(),
+  }),
+  /** The process is up but its execution loop stopped ticking. */
+  "worker.stalled": z.object({ lastTickAt: z.iso.datetime({ offset: true }), detectedAt: z.iso.datetime({ offset: true }), mode: modeSchema.nullish() }),
+  "worker.resumed": z.object({ stalledSince: z.iso.datetime({ offset: true }), resumedAt: z.iso.datetime({ offset: true }), mode: modeSchema.nullish() }),
   "backtest.completed": z.object({
     runId: z.string(),
     strategy: z.string(),

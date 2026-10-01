@@ -1,5 +1,5 @@
 import type { LiveEvent } from "@/components/live/live-events-provider";
-import { formatNumber, formatSignedMoney, formatSignedPercent } from "@/lib/format";
+import { formatDuration, formatNumber, formatSignedMoney, formatSignedPercent } from "@/lib/format";
 import type { Mode } from "@/lib/schemas";
 import { REJECT_REASON_LABELS } from "@/lib/schemas/signals";
 import { exitReasonLabel } from "@/lib/trades";
@@ -15,6 +15,7 @@ export const FEED_KINDS = [
   { key: "cycle", label: "Avaliações (sem entrada)" },
   { key: "backtest", label: "Backtests" },
   { key: "bot", label: "Pausa/retomada" },
+  { key: "worker", label: "Worker (início/queda)" },
   { key: "error", label: "Erros" },
   { key: "alert", label: "Alertas" },
 ] as const;
@@ -35,6 +36,8 @@ export interface FeedItem {
   at: number;
   /** Strategy evaluation (bot.cycle) details, used to group and spot re-evaluations. */
   cycle?: { symbol: string; action: string; reason: string; candleTime?: string | null; reevaluation?: boolean | null };
+  /** Outage confirmed by the backend's persisted heartbeat (worker.started with a downtime), epoch ms. */
+  downtime?: { from: number; to: number };
 }
 
 const price = (p: number) => formatNumber(p, p >= 100 ? 2 : p >= 1 ? 4 : 6);
@@ -134,6 +137,28 @@ export function describeEvent(e: LiveEvent, ranges: StrategyRanges = DEFAULT_RAN
         mode: "BACKTEST",
         at,
       };
+    case "worker.started": {
+      const d = e.data.downtime;
+      if (!d) return { kind: "worker", tone: "neutral", title: "Krypto worker iniciado", detail: "Início normal (deploy/reinício rápido).", mode: e.data.mode ?? undefined, at };
+      const from = Date.parse(d.from);
+      const to = Date.parse(d.to);
+      return {
+        kind: "worker",
+        tone: "warning",
+        title: `Krypto worker voltou após ${formatDuration(to - from)} offline`,
+        detail: [
+          `Último heartbeat antes da queda: ${new Date(from).toLocaleString("pt-BR")}`,
+          d.previousStopReason ? `processo encerrado pela plataforma (${d.previousStopReason})` : "sem parada registrada (crash ou hibernação da instância)",
+        ].join(" · "),
+        mode: e.data.mode ?? undefined,
+        at,
+        downtime: { from, to },
+      };
+    }
+    case "worker.stalled":
+      return { kind: "worker", tone: "critical", title: "Loop de execução parado", detail: `Último ciclo às ${new Date(e.data.lastTickAt).toLocaleTimeString("pt-BR")}`, mode: e.data.mode ?? undefined, at };
+    case "worker.resumed":
+      return { kind: "worker", tone: "neutral", title: "Loop de execução retomado", mode: e.data.mode ?? undefined, at };
     case "alert.critical":
       return { kind: "alert", tone: "critical", title: "Alerta crítico", detail: e.data.message, at };
   }
@@ -150,7 +175,7 @@ export const GAP_THRESHOLD_MS = 70 * 60_000;
 export type TimelineRow =
   | { type: "item"; item: FeedItem; reevaluation: boolean }
   | { type: "group"; key: string; items: FeedItem[]; flags: boolean[]; reevaluations: number }
-  | { type: "gap"; key: string; symbol: string; from: number; to: number };
+  | { type: "gap"; key: string; symbol: string; from: number; to: number; downtime?: { from: number; to: number } };
 
 /**
  * A cycle is a re-evaluation when the backend flagged it, when an older event already covered
@@ -199,7 +224,12 @@ export function findGaps(items: FeedItem[]): Array<{ symbol: string; from: numbe
 export function buildTimeline(items: FeedItem[], opts: { showReevaluations: boolean }): { rows: TimelineRow[]; hiddenReevaluations: number } {
   const reevaluations = markReevaluations(items);
   const visible = opts.showReevaluations ? items : items.filter((i) => !reevaluations.has(i));
-  const gaps = findGaps(items.filter((i) => !reevaluations.has(i)));
+  // A gap the backend confirmed (worker.started reported a downtime overlapping it) is a real outage.
+  const downtimes = items.flatMap((i) => (i.downtime ? [i.downtime] : []));
+  const gaps = findGaps(items.filter((i) => !reevaluations.has(i))).map((g) => ({
+    ...g,
+    downtime: downtimes.find((d) => d.from < g.to && d.to > g.from),
+  }));
 
   type Entry = { at: number; item?: FeedItem; gap?: (typeof gaps)[number] };
   // A gap sits just below the event that ended it.

@@ -98,13 +98,26 @@ export function BotStatusPanel({ status }: { status: BotStatus }) {
               </span>
             )}
             {health.state === "starting" && <span className="text-muted-foreground">Iniciando, aguardando o primeiro ciclo…</span>}
-            {health.state === "ok" && status.lastPollAt && (
+            {health.state === "ok" && status.worker?.lastHeartbeatAt && (
+              <span className="inline-flex flex-wrap items-center gap-1.5">
+                <CheckCircle2 className="size-4 text-profit" aria-hidden /> Worker ONLINE · último heartbeat{" "}
+                <When iso={status.worker.lastHeartbeatAt} now={now} />
+              </span>
+            )}
+            {health.state === "ok" && !status.worker && status.lastPollAt && (
               <span className="inline-flex flex-wrap items-center gap-1.5">
                 <CheckCircle2 className="size-4 text-profit" aria-hidden /> Rodando · última verificação{" "}
                 <When iso={status.lastPollAt} now={now} />
               </span>
             )}
-            {health.state === "stale" && status.lastPollAt && (
+            {health.state === "stale" && status.worker && (
+              <span role="alert" className="inline-flex flex-wrap items-center gap-1.5 font-medium text-loss">
+                <AlertTriangle className="size-4" aria-hidden />
+                Worker OFFLINE: {status.worker.reason ?? "sem heartbeat"}
+                {status.worker.lastHeartbeatAt && <> · último heartbeat há {formatDuration(health.lagMs)}</>}
+              </span>
+            )}
+            {health.state === "stale" && !status.worker && status.lastPollAt && (
               <span role="alert" className="inline-flex flex-wrap items-center gap-1.5 font-medium text-loss">
                 <AlertTriangle className="size-4" aria-hidden />
                 Loop possivelmente parado: sem verificação há {formatDuration(health.lagMs)} (esperado a cada{" "}
