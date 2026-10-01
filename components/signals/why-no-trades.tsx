@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, CircleHelp, Clock, Hourglass } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CircleHelp, Clock, Hourglass, Loader2 } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 import { ModeBadge } from "@/components/mode/mode-badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,21 +79,30 @@ function SymbolBlock({
   regimeTimeframe,
   ranges,
   now,
+  loading,
+  error,
 }: {
   symbol: string;
   snapshot: SignalSnapshot | undefined;
+  /** The worker is up but hasn't stored an evaluation of this symbol yet (fetching candles). */
+  loading: boolean;
+  /** Last failure fetching this symbol's market data, if not resolved since. */
+  error: { message: string; at: string } | undefined;
   timeframe: CandleInterval;
   tfMs: number;
   regimeTimeframe: string;
   ranges: StrategyRanges;
   now: number;
 }) {
-  const conditions = conditionsFrom(snapshot?.action, snapshot?.reason);
+  const conditions = conditionsFrom(snapshot?.action, snapshot?.reason, snapshot);
   const picture = useCrossPicture(symbol, timeframe, ranges);
   const ind = snapshot?.indicators ?? {};
+  const verdict = (key: "cross" | "regime" | "rsi") => snapshot?.conditions?.find((c) => c.key === key);
   const emaFast = ind.emaFast ?? picture?.fast;
   const emaSlow = ind.emaSlow ?? picture?.slow;
-  const rsi = ind.rsi ?? null;
+  const rsi = ind.rsi ?? verdict("rsi")?.value ?? null;
+  // An error newer than the stored evaluation is still going on; an older one was already overcome.
+  const showError = error !== undefined && (!snapshot || Date.parse(error.at) > Date.parse(snapshot.at));
   const emaRegime = ind.emaRegime ?? null;
   const judging = conditions.kind === "waiting" || conditions.kind === "entry";
   const short = conditions.side === "short";
@@ -136,18 +145,39 @@ function SymbolBlock({
           {snapshot ? (
             <>
               Última avaliação:{" "}
-              <time dateTime={snapshot.at} title={formatDateTime(snapshot.at)}>
-                {formatRelative(snapshot.at, now)}
-              </time>
+              <time dateTime={snapshot.at}>{formatDateTime(snapshot.at)}</time> ({formatRelative(snapshot.at, now)})
               {snapshot.candleTime && <> · candle {formatCandleRange(Date.parse(snapshot.candleTime), tfMs, now)}</>}
+              {snapshot.source === "reconciliation" && <> · reavaliado após reinício (informativo, sem ordens)</>}
             </>
+          ) : loading && !showError ? (
+            "Carregando dados históricos…"
           ) : (
-            "Sem avaliação desde que o backend iniciou"
+            "Nenhuma avaliação registrada"
           )}
         </span>
       </div>
-      <p className="text-sm">{summarize(conditions)}</p>
-      {judging || conditions.kind === "unknown" ? (
+      {showError && (
+        <p role="alert" className="flex items-start gap-2 rounded-md border border-loss/50 bg-loss/10 px-3 py-2 text-sm">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-loss" aria-hidden />
+          <span>
+            Erro ao obter dados da exchange ({formatDateTime(error.at)}): <span className="break-words font-mono text-xs">{error.message}</span>
+            {snapshot && <> Os dados abaixo são da última avaliação que funcionou.</>}
+          </span>
+        </p>
+      )}
+      {!snapshot ? (
+        showError ? null : loading ? (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+            Carregando dados históricos… O Krypto busca os candles de {timeframe} e {regimeTimeframe} e calcula as médias e o RSI.
+          </p>
+        ) : (
+          <p className="text-sm">{summarize(conditions)}</p>
+        )
+      ) : (
+        <p className="text-sm">{summarize(conditions)}</p>
+      )}
+      {snapshot && judging ? (
         <ul className="space-y-3">
           <Check
             ok={conditions.cross}
@@ -180,7 +210,7 @@ function SymbolBlock({
                 ? short
                   ? "Ainda não: o preço está praticamente em cima dessa média, tendência indefinida."
                   : "Ainda não: o preço está abaixo dessa média no gráfico maior."
-                : "Sem dado ainda."}
+                : "Valor não informado nesta avaliação."}
             {emaRegime != null && (
               <span className="mt-0.5 block text-xs tabular-nums">
                 EMA{ranges.emaRegime} ({regimeTimeframe}) {price(emaRegime)}
@@ -196,7 +226,7 @@ function SymbolBlock({
             ) : conditions.rsi === false ? (
               "Fora da faixa."
             ) : (
-              "Sem dado ainda."
+              "Valor não informado nesta avaliação."
             )}
           </Check>
         </ul>
@@ -220,6 +250,9 @@ export function WhyNoTrades() {
   const tfMs = INTERVAL_MS[timeframe] ?? 3_600_000;
   const health = loopHealth(s, now);
   const nextClose = nextCandleClose(now, tfMs);
+  // Up (or coming up) without an evaluation stored yet: the first tick is fetching the history.
+  const workerUp = s.worker ? s.worker.state === "ONLINE" || s.worker.state === "STARTING" : health.state !== "stale";
+  const loading = s.executionEnabled && workerUp;
 
   let banner: ReactNode = null;
   if (health.state === "disabled") {
@@ -267,6 +300,8 @@ export function WhyNoTrades() {
               key={symbol}
               symbol={symbol}
               snapshot={s.lastSignalBySymbol[symbol]}
+              error={s.symbolErrors?.[symbol]}
+              loading={loading}
               timeframe={timeframe}
               tfMs={tfMs}
               regimeTimeframe={live.regimeTimeframe}

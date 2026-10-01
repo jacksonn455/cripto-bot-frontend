@@ -6,10 +6,10 @@ const CONFIG_MISSING = "CONFIG_MISSING: API_URL não configurada ou não é http
 
 describe("resolveApiUrl", () => {
   it("requires an https API_URL in production", () => {
-    expect(resolveApiUrl({ VERCEL_ENV: "production", API_URL: "https://krypto.duckdns.org/" })).toBe("https://krypto.duckdns.org");
+    expect(resolveApiUrl({ VERCEL_ENV: "production", API_URL: "https://krypto-bot.duckdns.org/" })).toBe("https://krypto-bot.duckdns.org");
     expect(() => resolveApiUrl({ VERCEL_ENV: "production" })).toThrow(CONFIG_MISSING);
     expect(() => resolveApiUrl({ VERCEL_ENV: "production", API_URL: "" })).toThrow(CONFIG_MISSING);
-    expect(() => resolveApiUrl({ VERCEL_ENV: "production", API_URL: "http://krypto.duckdns.org" })).toThrow(CONFIG_MISSING);
+    expect(() => resolveApiUrl({ VERCEL_ENV: "production", API_URL: "http://krypto-bot.duckdns.org" })).toThrow(CONFIG_MISSING);
     expect(() => resolveApiUrl({ VERCEL_ENV: "production", API_URL: "https://" })).toThrow(CONFIG_MISSING);
   });
 

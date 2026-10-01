@@ -80,9 +80,21 @@ export interface Conditions {
   rsi: boolean | null;
 }
 
-/** Which entry conditions passed, from the action + reason of the last evaluation. */
-export function conditionsFrom(action: string | undefined, reason: string | undefined): Conditions {
-  const isShort = action === "ENTER_SHORT" || (reason !== undefined && (SHORT_CONTEXT.test(reason) || REGIME_UNDEFINED.test(reason)));
+/** The strategy's own verdicts, when the backend sends them (evaluation_snapshots). */
+export interface StructuredConditions {
+  side?: "LONG" | "SHORT" | null;
+  conditions?: Array<{ key: "cross" | "regime" | "rsi"; ok: boolean }> | null;
+}
+
+/**
+ * Which entry conditions passed in the last evaluation. Uses the strategy's structured verdicts
+ * when present; older snapshots only have the reason text, parsed with the fragments above.
+ */
+export function conditionsFrom(action: string | undefined, reason: string | undefined, structured?: StructuredConditions): Conditions {
+  const isShort =
+    structured?.side != null
+      ? structured.side === "SHORT"
+      : action === "ENTER_SHORT" || (reason !== undefined && (SHORT_CONTEXT.test(reason) || REGIME_UNDEFINED.test(reason)));
   const side = isShort ? "short" : "long";
   const none = { cross: null, regime: null, rsi: null };
   if (!action || reason === undefined) return { kind: "unknown", side, ...none };
@@ -90,6 +102,10 @@ export function conditionsFrom(action: string | undefined, reason: string | unde
   if (action === "EXIT") return { kind: "exit", side, ...none };
   if (action === "SKIP" || NO_HISTORY.test(reason)) return { kind: "no-data", side, ...none };
   if (OPEN_POSITION.test(reason)) return { kind: "position", side, ...none };
+  const verdict = (key: "cross" | "regime" | "rsi") => structured?.conditions?.find((c) => c.key === key)?.ok;
+  if (structured?.conditions?.length) {
+    return { kind: "waiting", side, cross: verdict("cross") ?? null, regime: verdict("regime") ?? null, rsi: verdict("rsi") ?? null };
+  }
   return {
     kind: "waiting",
     side,
@@ -107,7 +123,7 @@ const OK_LABEL = { cross: "Cruzamento", regime: "Tendência", rsi: "RSI" } as co
 export function summarize(c: Conditions): string {
   switch (c.kind) {
     case "unknown":
-      return "Ainda não há avaliação deste símbolo desde que o backend iniciou.";
+      return "Ainda não há avaliação registrada para este símbolo.";
     case "no-data":
       return "O Krypto está funcionando, mas ainda não tem candles suficientes para avaliar este símbolo.";
     case "position":
