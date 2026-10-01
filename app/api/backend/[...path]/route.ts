@@ -35,6 +35,8 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 // A backtest fetches historical candles and simulates the whole period synchronously.
 const BACKTEST_TIMEOUT_MS = 5 * 60_000;
 
+const GATEWAY_ERRORS = new Set([502, 503, 504]);
+
 const PASSTHROUGH_RESPONSE_HEADERS = ["content-type", "content-disposition", "cache-control"];
 
 type Ctx = RouteContext<"/api/backend/[...path]">;
@@ -58,8 +60,17 @@ async function proxy(request: NextRequest, ctx: Ctx, allowed: RegExp[]) {
     return errorResponse(404, "NOT_PROXIED", "Endpoint não disponível pelo painel.");
   }
 
+  let apiUrl: string;
+  try {
+    apiUrl = serverEnv.apiUrl;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[proxy] ${message}`);
+    return errorResponse(500, "CONFIG_MISSING", message);
+  }
+
   const isStream = path === "events/stream";
-  const target = `${serverEnv.apiUrl}/${path}${request.nextUrl.search}`;
+  const target = `${apiUrl}/${path}${request.nextUrl.search}`;
 
   const headers = new Headers({ accept: request.headers.get("accept") ?? "application/json" });
   if (serverEnv.apiKey) headers.set("x-control-api-key", serverEnv.apiKey);
@@ -89,6 +100,16 @@ async function proxy(request: NextRequest, ctx: Ctx, allowed: RegExp[]) {
     return errorResponse(503, "BACKEND_OFFLINE", "Não foi possível conectar ao backend.");
   }
 
+  // Nginx answers 502/503/504 with an HTML page while the backend is down or slow. Turn that into
+  // the proxy's own JSON so the client shows "Backend offline"; JSON bodies (e.g. /health's 503
+  // with the Mongo/Redis details) pass through untouched.
+  if (GATEWAY_ERRORS.has(upstream.status) && !isJson(upstream.headers.get("content-type"))) {
+    await upstream.body?.cancel().catch(() => {});
+    return upstream.status === 504
+      ? errorResponse(504, "BACKEND_TIMEOUT", "O backend demorou demais para responder.")
+      : errorResponse(upstream.status, "BACKEND_OFFLINE", "O backend está fora do ar.");
+  }
+
   const responseHeaders = new Headers();
   for (const name of PASSTHROUGH_RESPONSE_HEADERS) {
     const value = upstream.headers.get(name);
@@ -100,6 +121,10 @@ async function proxy(request: NextRequest, ctx: Ctx, allowed: RegExp[]) {
   }
 
   return new NextResponse(upstream.body, { status: upstream.status, headers: responseHeaders });
+}
+
+function isJson(contentType: string | null) {
+  return !!contentType && /^application\/json\b/i.test(contentType.trim());
 }
 
 function errorResponse(status: number, error: string, message: string) {

@@ -99,12 +99,15 @@ Main settings (see `.env.example` for all of them):
 
 | Variable | Purpose |
 | --- | --- |
-| `NEXT_PUBLIC_API_URL` / `API_URL` | Backend URL (build time / runtime override). |
+| `API_URL` | Backend URL, read at runtime by the server proxy. Required and `https://` in production (`VERCEL_ENV=production`), otherwise the proxy answers `CONFIG_MISSING`. Falls back to `NEXT_PUBLIC_API_URL`, then `http://localhost:8000` in dev/preview. |
 | `API_KEY` | Backend control key. Stays on the server, never reaches the browser. |
 | `DASHBOARD_PASSWORD` | Turns on the login screen. Without it, anyone with the URL can pause trading. |
 | `SESSION_SECRET` | Optional secret for the session cookie. |
 
-Production: `pnpm build && pnpm start`. Deployed on Vercel, with the backend on Render.
+Production: `pnpm build && pnpm start`. Deployed on Vercel (functions in `gru1`), with the
+backend on an Oracle VM behind Nginx and HTTPS (Let's Encrypt) at `https://krypto.duckdns.org`.
+When Nginx answers 502/503/504 without JSON, the proxy turns it into `BACKEND_OFFLINE` /
+`BACKEND_TIMEOUT`, so the dashboard shows the "backend offline" notice.
 
 ## Development
 
