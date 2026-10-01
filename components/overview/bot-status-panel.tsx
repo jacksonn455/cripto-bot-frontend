@@ -53,7 +53,7 @@ function ServicesHealth() {
     <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
       <Service name="MongoDB" ok={mongo.ok} latencyMs={mongo.latencyMs} down="fora do ar" />
       {redis.status === "disabled" ? (
-        // REDIS_URL empty or REDIS_ENABLED=false: an intentional setup (e.g. Render), not an outage.
+        // REDIS_URL empty or REDIS_ENABLED=false: an intentional setup (the backend runs without a cache), not an outage.
         <span className="inline-flex items-center gap-1.5 text-muted-foreground">
           <CircleMinus className="size-4" aria-hidden /> Redis (cache): desativado — opcional, relatórios leem direto do MongoDB
         </span>
