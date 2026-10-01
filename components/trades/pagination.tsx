@@ -13,9 +13,11 @@ interface Props {
   pageSizes: readonly number[];
   onChange: (patch: { page?: number; limit?: number }) => void;
   busy?: boolean;
+  /** Prefix for the page-size control id, so two paginations can share a page. */
+  id?: string;
 }
 
-export function Pagination({ page, limit, total, pageSizes, onChange, busy }: Props) {
+export function Pagination({ page, limit, total, pageSizes, onChange, busy, id = "page" }: Props) {
   const pages = Math.max(1, Math.ceil(total / limit));
   const first = total === 0 ? 0 : (page - 1) * limit + 1;
   const last = Math.min(page * limit, total);
@@ -27,9 +29,9 @@ export function Pagination({ page, limit, total, pageSizes, onChange, busy }: Pr
       </p>
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <Label htmlFor="page-size" className="text-xs text-muted-foreground">Por página</Label>
+          <Label htmlFor={`${id}-size`} className="text-xs text-muted-foreground">Por página</Label>
           <Select value={String(limit)} onValueChange={(v) => onChange({ limit: Number(v), page: 1 })}>
-            <SelectTrigger id="page-size" size="sm" className="w-18">
+            <SelectTrigger id={`${id}-size`} size="sm" className="w-18">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

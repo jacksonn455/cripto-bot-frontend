@@ -19,6 +19,7 @@ import {
 import { useMemo, useState } from "react";
 import { ModeBadge } from "@/components/mode/mode-badge";
 import { EmptyState } from "@/components/states/empty-state";
+import { Pagination } from "@/components/trades/pagination";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -56,6 +57,19 @@ const STATUS = {
   connecting: { label: "Conectando…", className: "bg-warning animate-pulse motion-reduce:animate-none" },
   reconnecting: { label: "Reconectando…", className: "bg-warning animate-pulse motion-reduce:animate-none" },
 } as const;
+
+const PAGE_SIZES = [20, 50, 100] as const;
+
+/** React keys for feed items: events can share time and text (bursts of the same error), so repeats get a suffix. */
+function itemKeys() {
+  const seen = new Map<string, number>();
+  return (item: FeedItem) => {
+    const base = `${item.at}-${item.title}-${item.detail ?? ""}`;
+    const n = seen.get(base) ?? 0;
+    seen.set(base, n + 1);
+    return n ? `${base}-${n}` : base;
+  };
+}
 
 const clock = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
@@ -116,6 +130,7 @@ export function LiveFeed() {
   const strategies = useStrategies();
   const [hidden, setHidden] = useState<Set<FeedKind>>(new Set());
   const [showReevaluations, setShowReevaluations] = useState(false);
+  const [paging, setPaging] = useState({ page: 1, limit: PAGE_SIZES[0] as number });
   const now = useNow(15_000);
 
   const ranges = useMemo(() => {
@@ -130,13 +145,19 @@ export function LiveFeed() {
   }, [items]);
   const visible = useMemo(() => items.filter((i) => !hidden.has(i.kind)), [items, hidden]);
   const { rows, hiddenReevaluations } = useMemo(() => buildTimeline(visible, { showReevaluations }), [visible, showReevaluations]);
-  const toggle = (k: FeedKind) =>
+  // Clamp instead of resetting so "Limpar" or a filter that shrinks the list never leaves an empty page.
+  const page = Math.min(paging.page, Math.max(1, Math.ceil(rows.length / paging.limit)));
+  const pageRows = rows.slice((page - 1) * paging.limit, page * paging.limit);
+  const keyOf = itemKeys();
+  const toggle = (k: FeedKind) => {
+    setPaging((p) => ({ ...p, page: 1 }));
     setHidden((s) => {
       const next = new Set(s);
       if (next.has(k)) next.delete(k);
       else next.add(k);
       return next;
     });
+  };
 
   return (
     <Card>
@@ -168,7 +189,7 @@ export function LiveFeed() {
           })}
           <div className="ml-auto flex items-center gap-2">
             {(hiddenReevaluations > 0 || showReevaluations) && (
-              <Button size="xs" variant="outline" aria-pressed={showReevaluations} onClick={() => setShowReevaluations((v) => !v)}>
+              <Button size="xs" variant="outline" aria-pressed={showReevaluations} onClick={() => { setShowReevaluations((v) => !v); setPaging((p) => ({ ...p, page: 1 })); }}>
                 {showReevaluations ? "Ocultar reavaliações" : `Mostrar reavaliações (${hiddenReevaluations})`}
               </Button>
             )}
@@ -189,71 +210,76 @@ export function LiveFeed() {
             }
           />
         ) : (
-          <ol className="divide-y rounded-lg border" aria-live="polite" aria-relevant="additions">
-            {rows.map((row) => {
-              if (row.type === "item") return <ItemRow key={`${row.item.at}-${row.item.title}`} item={row.item} reevaluation={row.reevaluation} now={now} />;
-              if (row.type === "gap") {
+          <div className="space-y-3">
+            <ol className="divide-y rounded-lg border" aria-live="polite" aria-relevant="additions">
+              {pageRows.map((row) => {
+                if (row.type === "item") return <ItemRow key={keyOf(row.item)} item={row.item} reevaluation={row.reevaluation} now={now} />;
+                if (row.type === "gap") {
+                  return (
+                    <li key={row.key} role="note" className="flex items-start gap-3 bg-warning/10 px-3 py-2.5">
+                      <PowerOff className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
+                      {row.downtime ? (
+                        <p className="text-sm">
+                          <strong>
+                            Krypto worker offline de {clock.format(row.downtime.from)} a {clock.format(row.downtime.to)}
+                          </strong>{" "}
+                          <span className="text-muted-foreground">
+                            ({formatDuration(row.downtime.to - row.downtime.from)}, em {formatDate(row.downtime.from)}) — confirmado pelo
+                            heartbeat do backend. {row.symbol} não foi avaliado entre {clock.format(row.from)} e {clock.format(row.to)}.
+                          </span>
+                        </p>
+                      ) : (
+                        <p className="text-sm">
+                          <strong>
+                            Sem registros de avaliação de {row.symbol} entre {clock.format(row.from)} e {clock.format(row.to)}
+                          </strong>{" "}
+                          <span className="text-muted-foreground">
+                            ({formatDuration(row.to - row.from)}, em {formatDate(row.from)}). O Krypto provavelmente estava desligado;
+                            oportunidades nesse intervalo não foram avaliadas.
+                          </span>
+                        </p>
+                      )}
+                    </li>
+                  );
+                }
+                const [latest] = row.items;
+                const Icon = ICON[latest.kind];
                 return (
-                  <li key={row.key} role="note" className="flex items-start gap-3 bg-warning/10 px-3 py-2.5">
-                    <PowerOff className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
-                    {row.downtime ? (
-                      <p className="text-sm">
-                        <strong>
-                          Krypto worker offline de {clock.format(row.downtime.from)} a {clock.format(row.downtime.to)}
-                        </strong>{" "}
-                        <span className="text-muted-foreground">
-                          ({formatDuration(row.downtime.to - row.downtime.from)}, em {formatDate(row.downtime.from)}) — confirmado pelo
-                          heartbeat do backend. {row.symbol} não foi avaliado entre {clock.format(row.from)} e {clock.format(row.to)}.
-                        </span>
-                      </p>
-                    ) : (
-                      <p className="text-sm">
-                        <strong>
-                          Sem registros de avaliação de {row.symbol} entre {clock.format(row.from)} e {clock.format(row.to)}
-                        </strong>{" "}
-                        <span className="text-muted-foreground">
-                          ({formatDuration(row.to - row.from)}, em {formatDate(row.from)}). O Krypto provavelmente estava desligado;
-                          oportunidades nesse intervalo não foram avaliadas.
-                        </span>
-                      </p>
-                    )}
+                  <li key={row.key}>
+                    <details className="group">
+                      <summary className="flex cursor-pointer list-none items-start gap-3 px-3 py-2.5 hover:bg-muted/40 [&::-webkit-details-marker]:hidden">
+                        <Icon className={cn("mt-0.5 size-4 shrink-0", TONE[latest.tone])} aria-hidden />
+                        <div className="min-w-0 flex-1">
+                          <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                            <Title item={latest} />
+                            <span className="font-normal text-muted-foreground">
+                              ({row.items.length} avaliações, última {formatRelative(latest.at, now)})
+                            </span>
+                            {latest.mode && <ModeBadge mode={latest.mode} />}
+                            {row.reevaluations > 0 && (
+                              <span className="text-[0.7rem] font-normal text-muted-foreground">inclui {row.reevaluations} reavaliação(ões) após reinício</span>
+                            )}
+                          </p>
+                          {latest.detail && <p className="text-sm break-words text-muted-foreground">{latest.detail}</p>}
+                          {latest.metrics && <p className="text-xs text-muted-foreground tabular-nums">Última: {latest.metrics}</p>}
+                        </div>
+                        <ChevronRight className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" aria-hidden />
+                        <span className="sr-only">Ver as {row.items.length} avaliações</span>
+                      </summary>
+                      <ol className="divide-y border-t bg-muted/20 pl-7">
+                        {row.items.map((item, i) => (
+                          <ItemRow key={keyOf(item)} item={item} reevaluation={row.flags[i]} now={now} />
+                        ))}
+                      </ol>
+                    </details>
                   </li>
                 );
-              }
-              const [latest] = row.items;
-              const Icon = ICON[latest.kind];
-              return (
-                <li key={row.key}>
-                  <details className="group">
-                    <summary className="flex cursor-pointer list-none items-start gap-3 px-3 py-2.5 hover:bg-muted/40 [&::-webkit-details-marker]:hidden">
-                      <Icon className={cn("mt-0.5 size-4 shrink-0", TONE[latest.tone])} aria-hidden />
-                      <div className="min-w-0 flex-1">
-                        <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                          <Title item={latest} />
-                          <span className="font-normal text-muted-foreground">
-                            ({row.items.length} avaliações, última {formatRelative(latest.at, now)})
-                          </span>
-                          {latest.mode && <ModeBadge mode={latest.mode} />}
-                          {row.reevaluations > 0 && (
-                            <span className="text-[0.7rem] font-normal text-muted-foreground">inclui {row.reevaluations} reavaliação(ões) após reinício</span>
-                          )}
-                        </p>
-                        {latest.detail && <p className="text-sm break-words text-muted-foreground">{latest.detail}</p>}
-                        {latest.metrics && <p className="text-xs text-muted-foreground tabular-nums">Última: {latest.metrics}</p>}
-                      </div>
-                      <ChevronRight className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" aria-hidden />
-                      <span className="sr-only">Ver as {row.items.length} avaliações</span>
-                    </summary>
-                    <ol className="divide-y border-t bg-muted/20 pl-7">
-                      {row.items.map((item, i) => (
-                        <ItemRow key={`${item.at}-${item.title}`} item={item} reevaluation={row.flags[i]} now={now} />
-                      ))}
-                    </ol>
-                  </details>
-                </li>
-              );
-            })}
-          </ol>
+              })}
+            </ol>
+            {rows.length > PAGE_SIZES[0] && (
+              <Pagination id="feed-page" page={page} limit={paging.limit} total={rows.length} pageSizes={PAGE_SIZES} onChange={(p) => setPaging((cur) => ({ ...cur, ...p }))} />
+            )}
+          </div>
         )}
       </CardContent>
     </Card>

@@ -87,6 +87,24 @@ describe("LiveFeed", () => {
     await user.click(screen.getByRole("button", { name: /^Erros/ }));
     expect(within(screen.getByRole("list")).getAllByRole("listitem")).toHaveLength(1);
   });
+
+  it("paginates long feeds, 20 per page", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <LiveEventsProvider>
+        <LiveFeed />
+      </LiveEventsProvider>,
+    );
+    await waitFor(() => expect(screen.getByText("Conectado")).toBeInTheDocument());
+    act(() => {
+      for (let i = 0; i < 25; i++) FakeEventSource.last!.emit("bot.error", { message: `falha ${i}`, at: new Date(Date.UTC(2026, 8, 29, 12, i)).toISOString() });
+    });
+
+    expect(within(screen.getByRole("list")).getAllByRole("listitem")).toHaveLength(20);
+    expect(screen.getByText("Página 1 de 2")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Próxima página" }));
+    expect(within(screen.getByRole("list")).getAllByRole("listitem")).toHaveLength(5);
+  });
 });
 
 describe("LiveFeed history", () => {
