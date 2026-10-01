@@ -111,3 +111,66 @@ describe("SignalsList empty state", () => {
     expect(await screen.findByText(/Último sinal \(sem filtros\): .* BTCUSDT · vetado/)).toBeInTheDocument();
   });
 });
+
+describe("WhyNoTrades - persisted evaluation states", () => {
+  const structured = {
+    ...waitingSnapshot,
+    at: "2026-09-29T12:00:30.000Z",
+    candleTime: "2026-09-29T11:59:59.999Z",
+    source: "cycle",
+    side: "LONG",
+    conditions: [
+      { key: "cross", ok: false, value: 99.9, threshold: "EMA50 100.00", message: "x" },
+      { key: "regime", ok: true, value: 101, threshold: "EMA200 (4h) 90.00", message: "y" },
+      { key: "rsi", ok: true, value: 57.7, threshold: "45 a 70", message: "z" },
+    ],
+    decision: { outcome: "NOT_ENTERED", reason: "sem cruzamento EMA rapida/lenta" },
+  };
+
+  function stubStatus(extra: Record<string, unknown>) {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        mockApi([
+          { path: "bot/status", body: { ...status({}), ...extra } },
+          { path: "strategies", body: strategiesFixture },
+          { path: "exchange/candles", body: rising() },
+        ]).fetchMock,
+      ),
+    );
+  }
+
+  it("shows the stored snapshot with its date and the structured conditions", async () => {
+    stubStatus({ lastSignalBySymbol: { BTCUSDT: structured, ETHUSDT: { ...structured, source: "reconciliation" } } });
+    renderWithProviders(<WhyNoTrades />);
+
+    const btc = (await screen.findByRole("heading", { name: "BTCUSDT" })).closest("section")!;
+    expect(within(btc).getByText(/Última avaliação:/)).toHaveTextContent(/29\/09\/2026, \d{2}:00/);
+    expect(within(btc).getByText(/RSI atual 57,7/)).toBeInTheDocument();
+    expect(within(btc).getAllByText("(atendida)")).toHaveLength(2);
+    expect(within(btc).queryByText(/Sem dado ainda/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/desde que o backend iniciou/)).not.toBeInTheDocument();
+    const eth = screen.getByRole("heading", { name: "ETHUSDT" }).closest("section")!;
+    expect(within(eth).getByText(/reavaliado após reinício/)).toBeInTheDocument();
+  });
+
+  it("says it is loading the history while the worker is up and nothing is stored yet", async () => {
+    stubStatus({ lastSignalBySymbol: {} });
+    renderWithProviders(<WhyNoTrades />);
+
+    const btc = (await screen.findByRole("heading", { name: "BTCUSDT" })).closest("section")!;
+    expect(within(btc).getAllByText(/Carregando dados históricos…/).length).toBeGreaterThan(0);
+    expect(within(btc).queryByRole("list")).not.toBeInTheDocument();
+  });
+
+  it("shows the exchange error instead of a misleading empty state", async () => {
+    stubStatus({ lastSignalBySymbol: {}, symbolErrors: { BTCUSDT: { message: "HTTP 451", at: "2026-09-29T12:30:00.000Z" } } });
+    renderWithProviders(<WhyNoTrades />);
+
+    const btc = (await screen.findByRole("heading", { name: "BTCUSDT" })).closest("section")!;
+    expect(within(btc).getByRole("alert")).toHaveTextContent(/Erro ao obter dados da exchange .*HTTP 451/);
+    expect(within(btc).queryByText(/Carregando dados históricos/)).not.toBeInTheDocument();
+  });
+});

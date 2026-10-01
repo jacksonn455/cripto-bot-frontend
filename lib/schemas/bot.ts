@@ -1,16 +1,37 @@
 import { z } from "zod";
 import { isoDate, opt } from "./common";
 
-/** RuntimeStatusService.SignalSnapshot. `action` is HOLD | ENTER_LONG | ENTER_SHORT | EXIT | SKIP. */
+/** One entry rule as the strategy judged it (evaluation_snapshots in the backend). */
+export const conditionResultSchema = z.object({
+  key: z.enum(["cross", "regime", "rsi"]),
+  ok: z.boolean(),
+  value: z.number().nullable(),
+  threshold: z.string(),
+  message: z.string(),
+});
+export type ConditionResult = z.infer<typeof conditionResultSchema>;
+
+/**
+ * Backend SignalSnapshot: the latest persisted evaluation of a symbol (survives restarts).
+ * `action` is HOLD | ENTER_LONG | ENTER_SHORT | EXIT | SKIP. Fields after `indicators` are absent
+ * on older backends; the reason text is then the only source of the conditions.
+ */
 export const signalSnapshotSchema = z.object({
   action: z.string(),
   reason: z.string(),
+  /** When the evaluation ran. */
   at: isoDate,
   /** Close time of the evaluated candle; absent when the strategy couldn't evaluate. */
   candleTime: opt(isoDate),
   price: opt(z.number()),
   /** The strategy's indicator snapshot: emaFast, emaSlow, rsi, atr, emaRegime. */
   indicators: opt(z.record(z.string(), z.number().nullable())),
+  candleOpenTime: opt(isoDate),
+  /** cycle = the loop's evaluation; reconciliation = informational re-run after a restart. */
+  source: opt(z.enum(["cycle", "reconciliation"])),
+  side: opt(z.enum(["LONG", "SHORT"])),
+  conditions: opt(z.array(conditionResultSchema)),
+  decision: opt(z.object({ outcome: z.string(), reason: z.string() })),
 });
 export type SignalSnapshot = z.infer<typeof signalSnapshotSchema>;
 
@@ -57,6 +78,8 @@ export const botStatusSchema = z.object({
   executionEnabled: z.boolean(),
   pollIntervalSeconds: z.number().int().positive(),
   lastSignalBySymbol: z.record(z.string(), signalSnapshotSchema),
+  /** Symbols whose last market-data fetch failed (until one succeeds). Absent on older backends. */
+  symbolErrors: opt(z.record(z.string(), z.object({ message: z.string(), at: isoDate }))),
   openTrades: z.number().int(),
   /** Free balance of the quote asset (USDT) — not mark-to-market equity. 0 when the balance call fails. */
   equity: z.number(),

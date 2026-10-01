@@ -1,10 +1,10 @@
 import type { LiveEvent } from "@/components/live/live-events-provider";
-import { formatDuration, formatNumber, formatSignedMoney, formatSignedPercent } from "@/lib/format";
+import { formatDateTime, formatDuration, formatNumber, formatSignedMoney, formatSignedPercent } from "@/lib/format";
 import type { Mode } from "@/lib/schemas";
 import { REJECT_REASON_LABELS } from "@/lib/schemas/signals";
 import { exitReasonLabel } from "@/lib/trades";
 import { pauseReasonLabel, SIGNAL_ACTION_LABELS } from "@/lib/bot-health";
-import { DEFAULT_RANGES, NO_ENTRY_TOOLTIP, translateReason, type StrategyRanges } from "@/lib/strategy-explain";
+import { candleEnd, DEFAULT_RANGES, NO_ENTRY_TOOLTIP, translateReason, type StrategyRanges } from "@/lib/strategy-explain";
 
 /** Feed categories the user can filter by. */
 export const FEED_KINDS = [
@@ -153,6 +153,17 @@ export function describeEvent(e: LiveEvent, ranges: StrategyRanges = DEFAULT_RAN
         mode: e.data.mode ?? undefined,
         at,
         downtime: { from, to },
+      };
+    }
+    case "worker.gap": {
+      const fmt = (iso: string) => formatDateTime(candleEnd(Date.parse(iso)));
+      return {
+        kind: "worker",
+        tone: "warning",
+        title: `${e.data.symbol}: ${e.data.missedCandles} candle(s) de ${e.data.timeframe} sem avaliação`,
+        detail: `Fecharam enquanto o worker estava fora (${fmt(e.data.firstMissedCandleClose)} a ${fmt(e.data.lastMissedCandleClose)}). Só o último candle (${fmt(e.data.evaluatedCandleClose)}) foi avaliado; nenhum trade é aberto retroativamente.`,
+        mode: e.data.mode ?? undefined,
+        at,
       };
     }
     case "worker.stalled":

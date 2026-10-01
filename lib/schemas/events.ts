@@ -81,6 +81,17 @@ export const sseEventSchemas = {
       })
       .nullish(),
   }),
+  /** Candles that closed while the worker was down; only the latest one was evaluated (no retroactive trades). */
+  "worker.gap": z.object({
+    symbol: z.string(),
+    mode: modeSchema.nullish(),
+    timeframe: z.string(),
+    missedCandles: z.number().int(),
+    lastEvaluatedCandleClose: z.iso.datetime({ offset: true }),
+    firstMissedCandleClose: z.iso.datetime({ offset: true }),
+    lastMissedCandleClose: z.iso.datetime({ offset: true }),
+    evaluatedCandleClose: z.iso.datetime({ offset: true }),
+  }),
   /** The process is up but its execution loop stopped ticking. */
   "worker.stalled": z.object({ lastTickAt: z.iso.datetime({ offset: true }), detectedAt: z.iso.datetime({ offset: true }), mode: modeSchema.nullish() }),
   "worker.resumed": z.object({ stalledSince: z.iso.datetime({ offset: true }), resumedAt: z.iso.datetime({ offset: true }), mode: modeSchema.nullish() }),
