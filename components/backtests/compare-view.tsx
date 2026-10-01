@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight } from "lucide-react";
 import Link from "next/link";
 import { EquityChart } from "@/components/charts/equity-chart";
 import { PageHeader } from "@/components/layout/page-header";
@@ -13,12 +13,48 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useBacktestRun, useEquityCurve } from "@/hooks/use-data";
 import { COMPARISON_METRICS } from "@/lib/analytics";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatFraction, formatNumber } from "@/lib/format";
 import type { BacktestRun } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { runLabel } from "@/components/analytics/run-select";
+import { CompareWindows } from "./compare-windows";
 import { OverfittingNotice } from "./overfitting-notice";
 import { runParamRows } from "./run-params";
+
+const dash = "—";
+/** Daily/annualized metrics and the DSR, when both runs have them (older runs show "—"). */
+const RISK_ADJUSTED_ROWS: Array<{ key: string; label: string; help: string; format: (r: BacktestRun) => string }> = [
+  {
+    key: "sharpeAnnualized",
+    label: "Sharpe anualizado",
+    help: "Retornos diários da curva de capital × √365. Comparável entre execuções.",
+    format: (r) => (r.riskAdjusted ? formatNumber(r.riskAdjusted.sharpeAnnualized, 2) : dash),
+  },
+  {
+    key: "sortinoAnnualized",
+    label: "Sortino anualizado",
+    help: "Como o Sharpe anualizado, mas só os dias de perda contam como risco.",
+    format: (r) => (r.riskAdjusted ? formatNumber(r.riskAdjusted.sortinoAnnualized, 2) : dash),
+  },
+  {
+    key: "calmar",
+    label: "Calmar",
+    help: "Retorno anual ÷ pior queda da curva diária.",
+    format: (r) => (r.riskAdjusted ? formatNumber(r.riskAdjusted.calmar, 2) : dash),
+  },
+  {
+    key: "dailyDrawdown",
+    label: "Pior queda (curva diária)",
+    help: "Inclui posições abertas marcadas a mercado.",
+    format: (r) => (r.riskAdjusted ? formatFraction(r.riskAdjusted.maxDrawdown, 1) : dash),
+  },
+  {
+    key: "dsr",
+    label: "Sharpe deflacionado (DSR)",
+    help: "Chance de o Sharpe ser melhor que o de um sortudo, dado o número de variações testadas. Critério: 95% ou mais.",
+    format: (r) => (r.overfitting?.deflatedSharpe != null ? formatFraction(r.overfitting.deflatedSharpe, 0) : dash),
+  },
+];
 
 function Back() {
   return (
@@ -125,6 +161,13 @@ function Compare({ a, b }: { a: BacktestRun; b: BacktestRun }) {
                         <TableCell className="text-right tabular-nums">{m.format(b.summary)}</TableCell>
                       </TableRow>
                     ))}
+                    {RISK_ADJUSTED_ROWS.map((m) => (
+                      <TableRow key={m.key}>
+                        <TableCell title={m.help}>{m.label}</TableCell>
+                        <TableCell className="text-right tabular-nums">{m.format(a)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{m.format(b)}</TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>
@@ -134,6 +177,15 @@ function Compare({ a, b }: { a: BacktestRun; b: BacktestRun }) {
             </CardContent>
           </Card>
         </div>
+
+        <div className="flex justify-end">
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/backtests/compare?a=${encodeURIComponent(b.runId)}&b=${encodeURIComponent(a.runId)}`}>
+              <ArrowLeftRight aria-hidden /> Trocar base e variante
+            </Link>
+          </Button>
+        </div>
+        <CompareWindows baseline={a.runId} variant={b.runId} />
 
         <div className="grid gap-6 lg:grid-cols-2">
           <Curve run={a} tag="A" />

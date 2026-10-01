@@ -22,6 +22,14 @@ export interface BacktestFormValues {
   includeShort: boolean;
   /** In percent per day, as typed (0,03 = 0.03%/day). Only sent when includeShort. */
   shortBorrowPctPerDay: string;
+  /** fixed = the rate above; funding = the perpetual's real funding history. Only sent when includeShort. */
+  shortCarryModel: "fixed" | "funding";
+  /** Slippage of stop exits in percent; "" = same as slippagePct. */
+  stopSlippagePct: string;
+  /** One shared balance for all symbols (like the live loop). */
+  portfolioMode: boolean;
+  /** Portfolio mode only: max summed risk on the same side, in percent of the balance; "" = no cap. */
+  maxSameSideRiskPct: string;
   /** Raw inputs by param key; "" = keep the configured value. */
   params: Record<string, string>;
 }
@@ -68,6 +76,20 @@ export function buildBacktestInput(
   const slippage = parseDecimal(v.slippagePct);
   if (!(slippage >= 0 && slippage <= 10)) errors.slippagePct = "Slippage entre 0% e 10%.";
 
+  let stopSlippage: number | undefined;
+  if (v.stopSlippagePct.trim()) {
+    const value = parseDecimal(v.stopSlippagePct);
+    if (!(value >= 0 && value <= 10)) errors.stopSlippagePct = "Slippage do stop entre 0% e 10%.";
+    else stopSlippage = value / 100;
+  }
+
+  let maxSameSideRisk: number | undefined;
+  if (v.portfolioMode && v.maxSameSideRiskPct.trim()) {
+    const value = parseDecimal(v.maxSameSideRiskPct);
+    if (!(value >= 0.01 && value <= 100)) errors.maxSameSideRiskPct = "Entre 0,01% e 100%.";
+    else maxSameSideRisk = value / 100;
+  }
+
   let walkForward: RunBacktestInput["walkForward"];
   if (v.walkForwardDays.trim()) {
     const days = Number(v.walkForwardDays);
@@ -112,11 +134,43 @@ export function buildBacktestInput(
       initialBalance: balance,
       feesPct: fees / 100,
       slippagePct: slippage / 100,
+      ...(stopSlippage !== undefined ? { stopSlippagePct: stopSlippage } : {}),
       ...(walkForward ? { walkForward } : {}),
       ...(v.includeShort && shortBorrow !== undefined ? { shortBorrowPctPerDay: shortBorrow } : {}),
+      ...(v.includeShort && v.shortCarryModel === "funding" ? { shortCarryModel: "funding" as const } : {}),
+      ...(v.portfolioMode ? { portfolioMode: true } : {}),
+      ...(maxSameSideRisk !== undefined ? { maxSameSideRiskPct: maxSameSideRisk } : {}),
       ...(Object.keys(strategyParams).length ? { strategyParams } : {}),
     },
   };
+}
+
+/**
+ * Cost stress test (E3 in docs/ESTRATEGIA-PESQUISA.md): fees and slippage at 1×, 2× or 3× the
+ * Binance baseline, with stop exits slipping twice as much as entries. The strategy should keep a
+ * profit factor above 1 at 2×.
+ */
+export const COST_STRESS_FACTORS = [1, 2, 3] as const;
+const BASE_COSTS = { feesPct: 0.1, slippagePct: 0.05, stopSlippagePct: 0.1 };
+
+const percentText = (value: number) => String(Number(value.toFixed(4))).replace(".", ",");
+
+export function costStressValues(factor: number): Pick<BacktestFormValues, "feesPct" | "slippagePct" | "stopSlippagePct"> {
+  return {
+    feesPct: percentText(BASE_COSTS.feesPct * factor),
+    slippagePct: percentText(BASE_COSTS.slippagePct * factor),
+    stopSlippagePct: percentText(BASE_COSTS.stopSlippagePct * factor),
+  };
+}
+
+/** Which stress preset the current cost fields match, if any. */
+export function currentCostStress(v: Pick<BacktestFormValues, "feesPct" | "slippagePct" | "stopSlippagePct">): number | null {
+  const same = (a: string, b: string) => parseDecimal(a) === parseDecimal(b);
+  const match = COST_STRESS_FACTORS.find((f) => {
+    const preset = costStressValues(f);
+    return same(v.feesPct, preset.feesPct) && same(v.slippagePct, preset.slippagePct) && v.stopSlippagePct.trim() !== "" && same(v.stopSlippagePct, preset.stopSlippagePct);
+  });
+  return match ?? null;
 }
 
 /** The strategy's short switch, when it has one (older backends don't). */

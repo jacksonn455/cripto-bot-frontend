@@ -19,6 +19,7 @@ const ALLOWED_GET = [
   /^reports\/(summary|equity-curve|by-strategy|by-symbol|by-hour|compare-modes)$/,
   /^backtest\/runs$/,
   /^backtest\/runs\/[\w-]+$/,
+  /^backtest\/(compare|pbo)$/,
   /^funding\/ranking$/,
   /^exchange\/(balance|candles)$/,
   /^events\/(stream|recent)$/,

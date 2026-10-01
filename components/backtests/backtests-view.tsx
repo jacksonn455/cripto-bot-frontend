@@ -1,6 +1,6 @@
 "use client";
 
-import { FlaskConical, GitCompare } from "lucide-react";
+import { FlaskConical, GitCompare, Sigma } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { PageHeader } from "@/components/layout/page-header";
@@ -11,6 +11,7 @@ import { Pagination } from "@/components/trades/pagination";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBacktestRuns, useBacktestRunsPage, useStrategies } from "@/hooks/use-data";
+import { MAX_PBO_RUNS } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { BacktestExplainer } from "./backtest-explainer";
 import { BacktestForm } from "./backtest-form";
@@ -25,7 +26,7 @@ export function BacktestsView() {
   const [paging, setPaging] = useState<{ page: number; limit: number }>({ page: 1, limit: 10 });
   const runs = useBacktestRunsPage(paging);
   const [selected, setSelected] = useState<string[]>([]);
-  const toggle = (id: string) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id].slice(-2)));
+  const toggle = (id: string) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id].slice(-MAX_PBO_RUNS)));
 
   // One overfitting warning per strategy that has runs (the count is per strategy, not per page).
   const variations = new Map<string, number>();
@@ -58,11 +59,12 @@ export function BacktestsView() {
             <div>
               <h2 id="runs-title" className="text-lg font-semibold">Execuções</h2>
               <p className="text-sm text-muted-foreground">
-                Mais recentes primeiro. Abra uma para ver o que o resultado quer dizer, ou marque duas para comparar.
+                Mais recentes primeiro. Abra uma para ver o que o resultado quer dizer, marque duas para comparar (a primeira marcada é a
+                base), ou várias variantes do mesmo período para medir o risco de overfitting.
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">{selected.length}/2 selecionadas</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground">{selected.length} selecionada(s)</span>
               {selected.length === 2 ? (
                 <Button asChild size="sm" variant="outline">
                   <Link href={`/backtests/compare?a=${encodeURIComponent(selected[0])}&b=${encodeURIComponent(selected[1])}`}>
@@ -70,8 +72,19 @@ export function BacktestsView() {
                   </Link>
                 </Button>
               ) : (
-                <Button size="sm" variant="outline" disabled title="Selecione duas execuções">
+                <Button size="sm" variant="outline" disabled title="Selecione exatamente duas execuções">
                   <GitCompare aria-hidden /> Comparar
+                </Button>
+              )}
+              {selected.length >= 2 ? (
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/backtests/pbo?runs=${selected.map(encodeURIComponent).join(",")}`}>
+                    <Sigma aria-hidden /> Risco de overfitting (PBO)
+                  </Link>
+                </Button>
+              ) : (
+                <Button size="sm" variant="outline" disabled title={`Selecione de 2 a ${MAX_PBO_RUNS} variantes`}>
+                  <Sigma aria-hidden /> Risco de overfitting (PBO)
                 </Button>
               )}
             </div>

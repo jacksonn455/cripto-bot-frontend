@@ -7,7 +7,50 @@ const walkForwardWindowSchema = z.object({
   to: isoDate,
   summary: metricsSummarySchema,
   tradeCount: z.number().int(),
+  /** Balance at the window start and the window's PnL as a fraction of it. Absent on older runs. */
+  startBalance: opt(z.number()),
+  returnPct: opt(z.number()),
 });
+
+/**
+ * risk-adjusted.util.RiskAdjustedMetrics — from the DAILY equity curve, annualized with 365 days.
+ * Fractions (0.12 = 12%).
+ */
+export const riskAdjustedSchema = z.object({
+  days: z.number().int(),
+  totalReturn: z.number(),
+  cagr: z.number(),
+  annualVolatility: z.number(),
+  /** Not annualized: the unit of PSR/DSR. */
+  sharpeDaily: z.number(),
+  sharpeAnnualized: z.number(),
+  sortinoAnnualized: z.number(),
+  maxDrawdown: z.number(),
+  calmar: z.number(),
+  skewness: z.number(),
+  /** Not excess (normal = 3). */
+  kurtosis: z.number(),
+  /** P(true Sharpe > 0). */
+  probabilisticSharpe: z.number(),
+});
+export type RiskAdjusted = z.infer<typeof riskAdjustedSchema>;
+
+/** BacktestService.RunOverfitting — computed when the run is read (the number of tries keeps growing). */
+export const runOverfittingSchema = z.object({
+  trials: z.number().int(),
+  trialsWithSharpe: z.number().int(),
+  sharpeVariance: z.number().nullable(),
+  expectedMaxSharpeAnnualized: z.number().nullable(),
+  /** Accept a variant only at >= 0.95. null = can't be estimated yet. */
+  deflatedSharpe: z.number().nullable(),
+  haircutSharpe: z.number(),
+  /** Fraction of the Sharpe discounted by the multiple-testing haircut. */
+  haircut: z.number(),
+});
+export type RunOverfitting = z.infer<typeof runOverfittingSchema>;
+
+/** DSR at or above this = the Sharpe very likely isn't luck given the variations tried. */
+export const DSR_THRESHOLD = 0.95;
 
 /** Trading costs charged in the simulation. The slippage/short-carry fields are absent on older runs. */
 export const backtestCostsSchema = z.object({
@@ -18,6 +61,14 @@ export const backtestCostsSchema = z.object({
   /** Short borrow/funding cost, already included in totalFees. */
   totalShortCarry: opt(z.number()),
   shortBorrowPctPerDay: opt(z.number()),
+  /** Extra loss from stops filled at the open of a candle that gapped through them. */
+  totalGapCost: opt(z.number()),
+  gappedStops: opt(z.number().int()),
+  /** Stop-exit slippage, when different from slippagePct. */
+  stopSlippagePct: opt(z.number()),
+  shortCarryModel: opt(z.enum(["fixed", "funding"])),
+  /** With the funding model: symbols without funding history (charged the fixed rate). */
+  fundingFallbackSymbols: opt(z.array(z.string())),
 });
 export type BacktestCosts = z.infer<typeof backtestCostsSchema>;
 
@@ -30,6 +81,8 @@ export const backtestRunResponseSchema = z.object({
   walkForwardWindows: opt(z.array(walkForwardWindowSchema)),
   costs: opt(backtestCostsSchema),
   exposurePct: opt(z.number()),
+  riskAdjusted: opt(riskAdjustedSchema),
+  engineVersion: opt(z.number().int()),
 });
 export type BacktestRunResponse = z.infer<typeof backtestRunResponseSchema>;
 
@@ -62,8 +115,79 @@ export const backtestRunSchema = z.object({
   costs: opt(backtestCostsSchema),
   /** Fraction (0–1) of the simulated candles with an open position. Absent on older runs. */
   exposurePct: opt(z.number()),
+  /** Daily/annualized metrics. Absent on older runs and on runs shorter than 3 days. */
+  riskAdjusted: opt(riskAdjustedSchema),
+  /** DSR and haircut given the variations tested. Absent when riskAdjusted is. */
+  overfitting: opt(runOverfittingSchema),
+  /** Simulation rules version (2 = stops gapped through fill at the open). Absent = 1. */
+  engineVersion: opt(z.number().int()),
+  /** Consecutive-stops pauses, each lifted at the next UTC day. Absent on older runs. */
+  stopPauses: opt(z.number().int()),
 });
 export type BacktestRun = z.infer<typeof backtestRunSchema>;
+
+const windowSideSchema = z.object({
+  tradeCount: z.number().int(),
+  winCount: z.number().int(),
+  lossCount: z.number().int(),
+  totalPnl: z.number(),
+  returnPct: z.number(),
+  profitFactor: z.number(),
+  expectancy: z.number(),
+  avgReturnPct: z.number(),
+});
+export type WindowSide = z.infer<typeof windowSideSchema>;
+const nullableShare = z.number().nullable();
+
+/** GET /backtest/compare — baseline vs variant, walk-forward window by window. */
+export const runComparisonSchema = z.object({
+  baselineRunId: z.string(),
+  variantRunId: z.string(),
+  comparable: z.boolean(),
+  warnings: z.array(z.string()),
+  windows: z.array(
+    z.object({
+      from: isoDate,
+      to: isoDate,
+      baseline: windowSideSchema,
+      variant: windowSideSchema,
+      variantBetter: z.object({ pnl: z.boolean(), profitFactor: z.boolean().nullable(), expectancy: z.boolean().nullable() }),
+    }),
+  ),
+  variantWinShare: z.object({
+    windows: z.number().int(),
+    pnl: nullableShare,
+    profitFactor: nullableShare,
+    expectancy: nullableShare,
+    profitFactorAndExpectancy: nullableShare,
+  }),
+  sample: z.object({
+    baseline: z.object({ LONG: z.number().int(), SHORT: z.number().int() }),
+    variant: z.object({ LONG: z.number().int(), SHORT: z.number().int() }),
+    inconclusive: z.boolean(),
+    minTradesPerSide: z.number().int(),
+  }),
+});
+export type RunComparison = z.infer<typeof runComparisonSchema>;
+
+/** GET /backtest/pbo — Probability of Backtest Overfitting (CSCV) over several variants. */
+export const pboSchema = z.object({
+  runIds: z.array(z.string()),
+  windows: z.number().int(),
+  blocks: z.number().int(),
+  combinations: z.number().int(),
+  pbo: z.number(),
+  probOosLoss: z.number(),
+  meanInSampleReturn: z.number(),
+  meanOutOfSampleReturn: z.number(),
+  logitHistogram: z.array(z.object({ bucket: z.string(), count: z.number().int() })),
+  selected: z.array(z.object({ runId: z.string(), count: z.number().int() })),
+  approximated: z.boolean(),
+  warnings: z.array(z.string()),
+});
+export type Pbo = z.infer<typeof pboSchema>;
+/** Max runs per PBO request (backend MAX_PBO_RUNS). */
+export const MAX_PBO_RUNS = 20;
 /** GET /backtest/runs — newest first. */
 export const backtestRunsPageSchema = z.object({
   items: z.array(backtestRunSchema),
@@ -90,6 +214,16 @@ export interface RunBacktestInput {
   slippagePct?: number;
   /** Short carry per day held, fraction of the entry notional (0–0.05). Only matters with allowShort=1. */
   shortBorrowPctPerDay?: number;
+  /** Slippage for stop exits only (0–0.1); omitted = slippagePct. */
+  stopSlippagePct?: number;
+  /** fixed = shortBorrowPctPerDay; funding = the perpetual's real funding history. */
+  shortCarryModel?: "fixed" | "funding";
+  /** All symbols on one shared balance, like the live loop (default: equal slice each). */
+  portfolioMode?: boolean;
+  /** Portfolio mode only: cap on the same-side open risk, fraction of the balance (0.015 = 1.5%). */
+  maxSameSideRiskPct?: number;
+  /** Regime candles per step (10–5000); omitted = the live window. Research variant V1 uses 1000. */
+  regimeLookback?: number;
   walkForward?: { testWindowDays: number };
   /** Overrides for GET /strategies params; only changed ones need to be sent. */
   strategyParams?: Record<string, number>;

@@ -25,7 +25,7 @@ const DECISIONS = [
   { value: "vetoed", label: "Vetados" },
 ] as const;
 
-const INDICATOR_LABELS: Record<string, string> = { emaFast: "EMA rápida", emaSlow: "EMA lenta", emaRegime: "EMA regime", rsi: "RSI", atr: "ATR" };
+const INDICATOR_LABELS: Record<string, string> = { emaFast: "EMA rápida", emaSlow: "EMA lenta", emaRegime: "EMA regime", rsi: "RSI", atr: "ATR", adx: "ADX" };
 
 function Indicators({ values }: { values: SignalRecord["indicators"] }) {
   const entries = Object.entries(values).filter(([, v]) => v != null);

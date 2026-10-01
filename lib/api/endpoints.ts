@@ -17,6 +17,8 @@ import {
   groupedMetricPageSchema,
   killSwitchResultSchema,
   metricsSummarySchema,
+  pboSchema,
+  runComparisonSchema,
   strategiesSchema,
   tradeSchema,
   tradesPageSchema,
@@ -71,6 +73,11 @@ export const api = {
       apiGet(backtestRunsPageSchema, "backtest/runs", q, signal),
     getRun: (runId: string, signal?: AbortSignal) =>
       apiGet(backtestRunSchema, `backtest/runs/${encodeURIComponent(runId)}`, undefined, signal),
+    /** Baseline vs variant, walk-forward window by window. */
+    compare: (baseline: string, variant: string, signal?: AbortSignal) =>
+      apiGet(runComparisonSchema, "backtest/compare", { baseline, variant }, signal),
+    /** Probability of Backtest Overfitting over 2–20 runs with the same walk-forward windows. */
+    pbo: (runIds: string[], signal?: AbortSignal) => apiGet(pboSchema, "backtest/pbo", { runIds: runIds.join(",") }, signal),
   },
   strategies: {
     list: (signal?: AbortSignal) => apiGet(strategiesSchema, "strategies", undefined, signal),

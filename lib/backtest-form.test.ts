@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { strategiesFixture } from "@/test/fixtures";
-import { buildBacktestInput, type BacktestFormValues } from "./backtest-form";
+import { buildBacktestInput, costStressValues, currentCostStress, type BacktestFormValues } from "./backtest-form";
 
 const params = strategiesFixture.strategies[0].params;
 const NOW = new Date(2026, 8, 29, 12, 0).getTime();
@@ -17,6 +17,10 @@ const base: BacktestFormValues = {
   walkForwardDays: "",
   includeShort: false,
   shortBorrowPctPerDay: "0,03",
+  shortCarryModel: "fixed",
+  stopSlippagePct: "",
+  portfolioMode: false,
+  maxSameSideRiskPct: "",
   params: {},
 };
 
@@ -89,5 +93,43 @@ describe("buildBacktestInput short side", () => {
       "shortBorrowPctPerDay",
     );
     expect(buildBacktestInput({ ...base, shortBorrowPctPerDay: "9" }, params, NOW).errors).toEqual({});
+  });
+
+  it("sends the real-funding carry model only with shorts on", () => {
+    expect(buildBacktestInput({ ...base, includeShort: true, shortCarryModel: "funding" }, params, NOW).input).toMatchObject({
+      shortCarryModel: "funding",
+    });
+    expect(buildBacktestInput({ ...base, shortCarryModel: "funding" }, params, NOW).input).not.toHaveProperty("shortCarryModel");
+  });
+});
+
+describe("buildBacktestInput research options", () => {
+  it("sends none of them by default (same request as before)", () => {
+    const { input } = buildBacktestInput(base, params, NOW);
+    for (const key of ["stopSlippagePct", "portfolioMode", "maxSameSideRiskPct", "shortCarryModel"]) expect(input).not.toHaveProperty(key);
+  });
+
+  it("sends the stop slippage as a fraction and validates it", () => {
+    expect(buildBacktestInput({ ...base, stopSlippagePct: "0,2" }, params, NOW).input!.stopSlippagePct).toBeCloseTo(0.002);
+    expect(buildBacktestInput({ ...base, stopSlippagePct: "15" }, params, NOW).errors).toHaveProperty("stopSlippagePct");
+  });
+
+  it("sends the same-side risk cap only in portfolio mode", () => {
+    const { input } = buildBacktestInput({ ...base, portfolioMode: true, maxSameSideRiskPct: "1,5" }, params, NOW);
+    expect(input).toMatchObject({ portfolioMode: true });
+    expect(input!.maxSameSideRiskPct).toBeCloseTo(0.015);
+    expect(buildBacktestInput({ ...base, maxSameSideRiskPct: "1,5" }, params, NOW).input).not.toHaveProperty("maxSameSideRiskPct");
+  });
+});
+
+describe("cost stress presets", () => {
+  it("scales fees and slippage, with stops slipping twice as much as entries", () => {
+    expect(costStressValues(1)).toEqual({ feesPct: "0,1", slippagePct: "0,05", stopSlippagePct: "0,1" });
+    expect(costStressValues(3)).toEqual({ feesPct: "0,3", slippagePct: "0,15", stopSlippagePct: "0,3" });
+  });
+
+  it("recognizes the preset the fields match", () => {
+    expect(currentCostStress({ ...base, ...costStressValues(2) })).toBe(2);
+    expect(currentCostStress(base)).toBeNull();
   });
 });

@@ -169,6 +169,27 @@ export function useBacktestRun(runId: string) {
   });
 }
 
+/** Window-by-window comparison of two runs (baseline first). */
+export function useBacktestCompare(baseline: string, variant: string) {
+  return useQuery({
+    queryKey: ["backtest", "compare", baseline, variant],
+    queryFn: ({ signal }) => api.backtest.compare(baseline, variant, signal),
+    enabled: Boolean(baseline && variant),
+    staleTime: 60_000,
+  });
+}
+
+/** PBO over the given runs (order doesn't matter to the result). */
+export function useBacktestPbo(runIds: string[]) {
+  return useQuery({
+    queryKey: ["backtest", "pbo", [...runIds].sort()],
+    queryFn: ({ signal }) => api.backtest.pbo(runIds, signal),
+    enabled: runIds.length >= 2,
+    staleTime: 60_000,
+    retry: false,
+  });
+}
+
 /** The latest runs (up to 200) as a plain list, for run pickers and overfitting banners. */
 export function useBacktestRuns() {
   return useQuery({

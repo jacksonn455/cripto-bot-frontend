@@ -15,12 +15,14 @@ interface HistogramProps {
   bins: HistogramBin[];
   height?: number;
   ariaLabel: string;
+  /** Tooltip prefix before the bin label. */
+  binTitle?: string;
 }
 
 const AXIS_TICK = { fill: "var(--muted-foreground)", fontSize: 12 };
 
 /** Adjacent bins with a 2px surface gap; counts labeled on the caps (few bins). */
-export function Histogram({ bins, height = 240, ariaLabel }: HistogramProps) {
+export function Histogram({ bins, height = 240, ariaLabel, binTitle = "PnL por trade" }: HistogramProps) {
   const total = bins.reduce((s, b) => s + b.count, 0);
   const shape = roundedBarShape("vertical", (_v, i) => (bins[i]?.tone === "loss" ? "var(--loss)" : "var(--profit)"));
 
@@ -29,7 +31,7 @@ export function Histogram({ bins, height = 240, ariaLabel }: HistogramProps) {
     if (!active || !b) return null;
     return (
       <div className="rounded-md border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md">
-        <p className="mb-1 font-medium">PnL por trade: {b.label}</p>
+        <p className="mb-1 font-medium">{binTitle}: {b.label}</p>
         <p>
           <strong className="tabular-nums">{b.count}</strong> trade(s)
           {total > 0 && <span className="text-muted-foreground"> · {formatNumber((b.count / total) * 100, 0)}%</span>}

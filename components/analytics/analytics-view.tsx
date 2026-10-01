@@ -17,6 +17,7 @@ import { MetricsGrid } from "./metrics-grid";
 import { ModeComparison } from "./mode-comparison";
 import { SideComparison } from "./side-comparison";
 import { PeriodPicker, type AnalyticsPeriod } from "./period-picker";
+import { RDistribution } from "./r-distribution";
 import { ALL_RUNS, RunSelect } from "./run-select";
 
 export function AnalyticsView() {
@@ -96,6 +97,7 @@ export function AnalyticsView() {
               <SideComparison summary={s} />
               <BreakdownCharts filter={filter} />
               <DistributionCharts summary={s} />
+              {s.rStats && <RDistribution stats={s.rStats} />}
             </div>
           )}
         </QueryState>

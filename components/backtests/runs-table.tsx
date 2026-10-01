@@ -5,7 +5,7 @@ import { Pnl, PnlPercent } from "@/components/data/pnl";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { readRun } from "@/lib/backtest-explain";
 import { formatDate, formatDateTime, formatFraction, formatNumber, MINUS } from "@/lib/format";
-import type { BacktestRun } from "@/lib/schemas";
+import { MAX_PBO_RUNS, type BacktestRun } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { TONE_ICON, TONE_TEXT } from "./run-reading";
 
@@ -15,7 +15,7 @@ interface Props {
   onToggle: (runId: string) => void;
 }
 
-/** Up to two runs can be selected for the side-by-side comparison. */
+/** Two selected runs = side-by-side comparison; 2 to MAX_PBO_RUNS = the PBO of those variants. */
 export function RunsTable({ runs, selected, onToggle }: Props) {
   return (
     <div className="overflow-x-auto rounded-lg border">
@@ -42,7 +42,7 @@ export function RunsTable({ runs, selected, onToggle }: Props) {
             const s = r.summary;
             const reading = readRun(r);
             const checked = selected.includes(r.runId);
-            const disabled = !checked && selected.length >= 2;
+            const disabled = !checked && selected.length >= MAX_PBO_RUNS;
             const Icon = TONE_ICON[reading.verdict.tone];
             return (
               <TableRow key={r.runId} data-state={checked ? "selected" : undefined}>

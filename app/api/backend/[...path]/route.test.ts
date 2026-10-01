@@ -67,6 +67,16 @@ describe("backend proxy", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("proxies the backtest research endpoints (window comparison and PBO) as GETs", async () => {
+    const { GET } = await loadRoute({ API_URL: "http://bot:9000", API_KEY: "" });
+    await GET(new NextRequest("http://painel/api/backend/backtest/compare?baseline=a&variant=b"), ctx("backtest/compare"));
+    await GET(new NextRequest("http://painel/api/backend/backtest/pbo?runIds=a,b"), ctx("backtest/pbo"));
+    expect(fetchMock.mock.calls.map((c) => c[0])).toEqual([
+      "http://bot:9000/backtest/compare?baseline=a&variant=b",
+      "http://bot:9000/backtest/pbo?runIds=a,b",
+    ]);
+  });
+
   it("answers 503 BACKEND_OFFLINE when the backend is unreachable", async () => {
     fetchMock.mockRejectedValueOnce(new TypeError("fetch failed"));
     const { GET } = await loadRoute({ API_URL: "http://bot:9000" });

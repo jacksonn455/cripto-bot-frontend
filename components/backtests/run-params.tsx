@@ -16,6 +16,9 @@ export function runParamRows(run: BacktestRun): ParamRow[] {
   const lookback = num("candleLookback");
   const shortBorrow = num("shortBorrowPctPerDay");
   const allocation = num("allocationPerSymbol");
+  const stopSlippage = num("stopSlippagePct");
+  const sameSideCap = num("maxSameSideRiskPct");
+  const portfolio = run.params.portfolioMode === true;
   return [
     { key: "strategy", label: "Estratégia", value: run.strategy },
     { key: "symbols", label: "Símbolo", value: run.symbols.join(", ") },
@@ -29,6 +32,14 @@ export function runParamRows(run: BacktestRun): ParamRow[] {
       : []),
     { key: "feesPct", label: "Taxa por lado", value: formatFraction(run.feesPct, 3) },
     { key: "slippagePct", label: "Slippage", value: formatFraction(run.slippagePct, 3) },
+    { key: "stopSlippagePct", label: "Slippage do stop", value: stopSlippage != null ? formatFraction(stopSlippage, 3) : "igual ao slippage" },
+    ...(run.symbols.length > 1 || portfolio
+      ? [{ key: "portfolioMode", label: "Saldo", value: portfolio ? "carteira única (compartilhado)" : "fatia igual por símbolo" }]
+      : []),
+    ...(sameSideCap != null ? [{ key: "maxSameSideRiskPct", label: "Risco máx. no mesmo sentido", value: formatFraction(sameSideCap, 2) }] : []),
+    ...(run.params.shortCarryModel === "funding" ? [{ key: "shortCarryModel", label: "Custo do short", value: "funding real (histórico)" }] : []),
+    ...(num("regimeLookback") != null ? [{ key: "regimeLookback", label: "Janela do regime", value: `${formatNumber(num("regimeLookback")!, 0)} candles` }] : []),
+    { key: "engineVersion", label: "Versão do motor", value: `v${run.engineVersion ?? 1}${(run.engineVersion ?? 1) < 2 ? " (stop sem gap)" : ""}` },
     // allowShort is left out of the hashed params when 0 (long-only), so absent = no shorts.
     { key: "short", label: "Short", value: strategyParams.allowShort === 1 ? "incluído" : "não (só long)" },
     ...(shortBorrow != null ? [{ key: "shortBorrowPctPerDay", label: "Custo do short", value: `${formatFraction(shortBorrow, 3)} ao dia` }] : []),

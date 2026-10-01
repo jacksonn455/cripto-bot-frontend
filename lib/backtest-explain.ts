@@ -4,7 +4,7 @@
  * walk-forward windows) and never feeds a decision.
  */
 import { formatFraction, formatMoney, formatNumber, formatSignedMoney, formatSignedPercent } from "@/lib/format";
-import type { BacktestRun } from "@/lib/schemas";
+import { DSR_THRESHOLD, type BacktestRun } from "@/lib/schemas";
 
 /** Fewer closed trades than this and any conclusion is mostly luck. */
 export const MIN_TRADES = 30;
@@ -22,7 +22,7 @@ export interface Finding {
   text: string;
 }
 
-export type VerdictKind = "no-trades" | "inconclusive" | "loss" | "below-hold" | "unstable" | "promising";
+export type VerdictKind = "no-trades" | "inconclusive" | "loss" | "below-hold" | "unstable" | "maybe-luck" | "promising";
 
 export interface Verdict {
   kind: VerdictKind;
@@ -158,6 +158,16 @@ export function readRun(run: BacktestRun): RunReading {
   }
 
   // 8. Overfitting
+  const dsr = run.overfitting?.deflatedSharpe;
+  if (s.tradeCount > 0 && dsr != null) {
+    const passes = dsr >= DSR_THRESHOLD;
+    findings.push({
+      key: "dsr",
+      tone: passes ? "good" : "warn",
+      title: passes ? "Resultado dificilmente é sorte" : "Pode ser sorte",
+      text: `Considerando as ${run.overfitting!.trials} combinação(ões) já testada(s), a chance de o Sharpe real ser melhor que o de um sortudo é ${formatFraction(dsr, 0)} (Sharpe deflacionado). O critério para aprovar uma variante é ${formatFraction(DSR_THRESHOLD, 0)} ou mais.`,
+    });
+  }
   if (run.paramVariationsTestedForStrategy > 1) {
     findings.push({
       key: "overfitting",
@@ -196,6 +206,15 @@ function verdictFor(run: BacktestRun, returnPct: number, bh: number | null, unst
   }
   if (unstable) {
     return { kind: "unstable", tone: "warn", title: "Promissor, mas instável", text: "O lucro veio de poucos períodos. Teste outros intervalos antes de confiar." };
+  }
+  const dsr = run.overfitting?.deflatedSharpe;
+  if (dsr != null && dsr < DSR_THRESHOLD) {
+    return {
+      kind: "maybe-luck",
+      tone: "warn",
+      title: "Promissor, mas pode ser sorte",
+      text: `Com tantas variações testadas, o Sharpe deflacionado ficou em ${formatFraction(dsr, 0)}, abaixo de ${formatFraction(DSR_THRESHOLD, 0)}. Confirme em walk-forward e paper antes de mudar a produção.`,
+    };
   }
   return {
     kind: "promising",

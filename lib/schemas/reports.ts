@@ -14,6 +14,25 @@ export const sideMetricsSchema = z.object({
 });
 export type SideMetrics = z.infer<typeof sideMetricsSchema>;
 
+const bucketsSchema = z.array(z.object({ bucket: z.string(), count: z.number().int() }));
+
+/** metrics.util.RMultipleStats — results in multiples of the initial risk (R). */
+export const rStatsSchema = z.object({
+  tradeCount: z.number().int(),
+  avgR: z.number(),
+  medianR: z.number(),
+  bestR: z.number(),
+  worstR: z.number(),
+  tradesAtLeast3R: z.number().int(),
+  /** Buckets "< -1R", "-1R a 0R", … ">= 3R". */
+  rHistogram: bucketsSchema,
+  /** Share of the gross profit made by the best 10% of trades (0–1); null without winning trades. */
+  topDecilePnlShare: z.number().nullable(),
+  /** Implied Kelly fraction (diagnostic only); null without both wins and losses. */
+  kellyFraction: z.number().nullable(),
+});
+export type RStats = z.infer<typeof rStatsSchema>;
+
 export const metricsSummarySchema = z.object({
   tradeCount: z.number().int(),
   winCount: z.number().int(),
@@ -48,6 +67,8 @@ export const metricsSummarySchema = z.object({
   longCount: opt(z.number().int()),
   shortCount: opt(z.number().int()),
   bySide: opt(z.object({ LONG: sideMetricsSchema, SHORT: sideMetricsSchema })),
+  /** Absent when no trade has entry/stop/qty (older data). */
+  rStats: opt(rStatsSchema),
 });
 export type MetricsSummary = z.infer<typeof metricsSummarySchema>;
 

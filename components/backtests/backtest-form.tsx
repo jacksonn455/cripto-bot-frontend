@@ -15,7 +15,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useBacktestRun } from "@/hooks/use-data";
 import { useNow } from "@/hooks/use-now";
 import { api } from "@/lib/api/endpoints";
-import { SHORT_PARAM, buildBacktestInput, MAX_SYMBOLS, shortParamOf, type BacktestFormValues } from "@/lib/backtest-form";
+import {
+  COST_STRESS_FACTORS,
+  SHORT_PARAM,
+  buildBacktestInput,
+  costStressValues,
+  currentCostStress,
+  MAX_SYMBOLS,
+  shortParamOf,
+  type BacktestFormValues,
+} from "@/lib/backtest-form";
 import { formatDuration, formatFraction, formatNumber } from "@/lib/format";
 import { CANDLE_INTERVALS, type Strategies } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
@@ -73,6 +82,10 @@ export function BacktestForm({ strategies }: { strategies: Strategies }) {
       walkForwardDays: "",
       includeShort: shortParamOf(strategies.strategies.find((s) => s.name === strategies.live.strategy)?.params)?.value === 1,
       shortBorrowPctPerDay: "0,03",
+      shortCarryModel: "fixed",
+      stopSlippagePct: "",
+      portfolioMode: false,
+      maxSameSideRiskPct: "",
       params: {},
     };
   });
@@ -84,6 +97,7 @@ export function BacktestForm({ strategies }: { strategies: Strategies }) {
   const shortParam = shortParamOf(params);
   // allowShort has its own switch below; the numeric grid shows the other knobs.
   const numericParams = params.filter((p) => p.key !== SHORT_PARAM);
+  const activeStress = currentCostStress(values);
   const changedParams = numericParams.filter((p) => values.params[p.key]?.trim() && Number(values.params[p.key].replace(",", ".")) !== p.value).length;
 
   const run = useMutation({
@@ -186,9 +200,73 @@ export function BacktestForm({ strategies }: { strategies: Strategies }) {
             <Field id="slippagePct" label="Slippage (%)" error={err("slippagePct")} hint="Aplicado contra você na entrada e na saída.">
               <Input id="slippagePct" inputMode="decimal" value={values.slippagePct} onChange={(e) => set("slippagePct", e.target.value)} className="h-8" {...inputProps("slippagePct")} />
             </Field>
+            <Field
+              id="stopSlippagePct"
+              label="Slippage do stop (%)"
+              error={err("stopSlippagePct")}
+              hint="Opcional. Stops executam a mercado e costumam escorregar mais. Vazio = igual ao slippage."
+            >
+              <Input id="stopSlippagePct" inputMode="decimal" placeholder="Igual ao slippage" value={values.stopSlippagePct} onChange={(e) => set("stopSlippagePct", e.target.value)} className="h-8" {...inputProps("stopSlippagePct")} />
+            </Field>
             <Field id="walkForwardDays" label="Walk-forward (dias por janela)" error={err("walkForwardDays")} hint="Opcional. Divide o período em janelas consecutivas.">
               <Input id="walkForwardDays" inputMode="numeric" placeholder="Desligado" value={values.walkForwardDays} onChange={(e) => set("walkForwardDays", e.target.value)} className="h-8" {...inputProps("walkForwardDays")} />
             </Field>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 text-sm" role="group" aria-labelledby="cost-stress-label">
+            <span id="cost-stress-label" className="text-xs text-muted-foreground">Estresse de custos:</span>
+            {COST_STRESS_FACTORS.map((f) => (
+              <Button
+                key={f}
+                type="button"
+                size="sm"
+                variant={activeStress === f ? "default" : "outline"}
+                aria-pressed={activeStress === f}
+                onClick={() => setValues((v) => ({ ...v, ...costStressValues(f) }))}
+              >
+                {f}×
+              </Button>
+            ))}
+            <span className="text-xs text-muted-foreground">
+              Taxa, slippage e slippage do stop (o dobro da entrada) multiplicados. Uma estratégia robusta mantém profit factor acima de 1 com custos 2×.
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-start gap-4 rounded-lg border p-3">
+            <label htmlFor="portfolioMode" className="flex max-w-md cursor-pointer items-start gap-2 text-sm">
+              <input
+                id="portfolioMode"
+                type="checkbox"
+                checked={values.portfolioMode}
+                onChange={(e) => set("portfolioMode", e.target.checked)}
+                className="mt-0.5 size-4 accent-primary"
+              />
+              <span>
+                <span className="font-medium">Carteira única</span>
+                <span className="block text-xs text-muted-foreground">
+                  Todos os símbolos no mesmo saldo e no mesmo relógio, como o Krypto ao vivo: o risco vê todas as posições abertas
+                  e os limites diários valem para a conta. Desligado, cada símbolo recebe uma fatia igual e roda sozinho.
+                </span>
+              </span>
+            </label>
+            {values.portfolioMode && (
+              <Field
+                id="maxSameSideRiskPct"
+                label="Risco máximo no mesmo sentido (%)"
+                error={err("maxSameSideRiskPct")}
+                hint="Opcional. Ex.: 1,5. BTC e ETH andam juntos, então dois longs são quase uma aposta só. Vazio = sem limite."
+              >
+                <Input
+                  id="maxSameSideRiskPct"
+                  inputMode="decimal"
+                  placeholder="Sem limite"
+                  value={values.maxSameSideRiskPct}
+                  onChange={(e) => set("maxSameSideRiskPct", e.target.value)}
+                  className="h-8 w-32"
+                  {...inputProps("maxSameSideRiskPct")}
+                />
+              </Field>
+            )}
           </div>
 
           {shortParam && (
@@ -209,6 +287,25 @@ export function BacktestForm({ strategies }: { strategies: Strategies }) {
                   </span>
                 </span>
               </label>
+              {values.includeShort && (
+                <Field
+                  id="shortCarryModel"
+                  label="Cobrança do short"
+                  hint={
+                    values.shortCarryModel === "funding"
+                      ? "Funding real do perpétuo da Binance a cada 8h (funding positivo é receita para o short). Sem histórico, usa a taxa fixa."
+                      : "Taxa fixa por dia, abaixo."
+                  }
+                >
+                  <Select value={values.shortCarryModel} onValueChange={(v) => set("shortCarryModel", v as BacktestFormValues["shortCarryModel"])}>
+                    <SelectTrigger id="shortCarryModel" size="sm" className="w-48"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fixed">Taxa fixa ao dia</SelectItem>
+                      <SelectItem value="funding">Funding real (histórico)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              )}
               {values.includeShort && (
                 <Field
                   id="shortBorrowPctPerDay"

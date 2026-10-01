@@ -23,11 +23,13 @@ import { ApiError } from "@/lib/api/client";
 import { formatRatio } from "@/lib/analytics";
 import { formatDate, formatDateTime, formatFraction, formatNumber } from "@/lib/format";
 import type { BacktestRun, TradesQuery } from "@/lib/schemas";
-import { Pnl } from "@/components/data/pnl";
+import { Pnl, PnlPercent } from "@/components/data/pnl";
+import { RDistribution } from "@/components/analytics/r-distribution";
 import { OverfittingNotice } from "./overfitting-notice";
 import { RunCosts } from "./run-costs";
 import { RunParams } from "./run-params";
 import { RunReading } from "./run-reading";
+import { RunRiskAdjusted } from "./run-risk-adjusted";
 
 function Back() {
   return (
@@ -98,6 +100,15 @@ function RunDetail({ run }: { run: BacktestRun }) {
           </>
         )}
 
+        <RunRiskAdjusted run={run} />
+
+        {run.summary.rStats && run.summary.tradeCount > 0 && (
+          <RDistribution
+            stats={run.summary.rStats}
+            riskPerTradePct={typeof run.params.riskPerTradePct === "number" ? run.params.riskPerTradePct : undefined}
+          />
+        )}
+
         {(run.costs || run.exposurePct != null) && (
           <Card>
             <CardHeader>
@@ -138,6 +149,7 @@ function RunDetail({ run }: { run: BacktestRun }) {
                     <TableRow>
                       <TableHead>Janela</TableHead>
                       <TableHead className="text-right">Trades</TableHead>
+                      <TableHead className="text-right">Retorno</TableHead>
                       <TableHead className="text-right">PnL</TableHead>
                       <TableHead className="text-right">Win rate</TableHead>
                       <TableHead className="text-right">Profit factor</TableHead>
@@ -148,6 +160,7 @@ function RunDetail({ run }: { run: BacktestRun }) {
                       <TableRow key={w.from}>
                         <TableCell className="whitespace-nowrap">{formatDate(w.from)} – {formatDate(w.to)}</TableCell>
                         <TableCell className="text-right tabular-nums">{formatNumber(w.tradeCount, 0)}</TableCell>
+                        <TableCell className="text-right"><PnlPercent value={w.returnPct != null ? w.returnPct * 100 : null} /></TableCell>
                         <TableCell className="text-right"><Pnl value={w.summary.totalPnl} /></TableCell>
                         <TableCell className="text-right tabular-nums">{w.tradeCount ? formatFraction(w.summary.winRate, 1) : "—"}</TableCell>
                         <TableCell className="text-right tabular-nums">{formatRatio(w.summary.profitFactor, w.summary)}</TableCell>

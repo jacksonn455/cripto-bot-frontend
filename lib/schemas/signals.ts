@@ -13,6 +13,7 @@ export const REJECT_REASON_LABELS: Record<string, string> = {
   INVALID_STOP_DISTANCE: "Stop inválido (distância ou lado errado da entrada)",
   INVALID_TAKE_PROFIT: "Take profit do lado errado da entrada",
   MAX_EXPOSURE_EXCEEDED: "Exposição máxima excedida",
+  AGGREGATE_RISK_LIMIT: "Risco somado no mesmo sentido acima do limite",
   RR_TOO_LOW: "Risco/retorno abaixo do mínimo",
   LOW_LIQUIDITY: "Liquidez baixa",
   SPREAD_TOO_WIDE: "Spread largo demais",
