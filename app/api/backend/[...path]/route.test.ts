@@ -94,9 +94,9 @@ describe("backend proxy", () => {
   });
 
   it("uses the https API_URL in production", async () => {
-    const { GET } = await loadRoute({ VERCEL_ENV: "production", API_URL: "https://krypto.duckdns.org" });
+    const { GET } = await loadRoute({ VERCEL_ENV: "production", API_URL: "https://krypto-bot.duckdns.org" });
     await GET(new NextRequest("http://painel/api/backend/health"), ctx("health"));
-    expect(fetchMock.mock.calls[0][0]).toBe("https://krypto.duckdns.org/health");
+    expect(fetchMock.mock.calls[0][0]).toBe("https://krypto-bot.duckdns.org/health");
   });
 
   it.each([

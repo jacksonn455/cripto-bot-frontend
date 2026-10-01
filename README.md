@@ -99,13 +99,17 @@ Main settings (see `.env.example` for all of them):
 
 | Variable | Purpose |
 | --- | --- |
-| `API_URL` | Backend URL, read at runtime by the server proxy. Required and `https://` in production (`VERCEL_ENV=production`), otherwise the proxy answers `CONFIG_MISSING`. Falls back to `NEXT_PUBLIC_API_URL`, then `http://localhost:8000` in dev/preview. |
+| `API_URL` | Backend URL without a trailing slash, read at runtime by the server proxy: `https://krypto-bot.duckdns.org` in production, `http://localhost:8000` for local development. Required and `https://` in production (`VERCEL_ENV=production`), otherwise the proxy answers `CONFIG_MISSING`. |
 | `API_KEY` | Backend control key. Stays on the server, never reaches the browser. |
 | `DASHBOARD_PASSWORD` | Turns on the login screen. Without it, anyone with the URL can pause trading. |
 | `SESSION_SECRET` | Optional secret for the session cookie. |
+| `TRUST_PROXY` | `true` behind a trusted proxy (Vercel) to rate-limit login attempts per IP. |
+
+Do not use `NEXT_PUBLIC_API_URL`: `NEXT_PUBLIC_*` variables are inlined into the browser bundle,
+and the dashboard only talks to the backend from the server. Set `API_URL` instead.
 
 Production: `pnpm build && pnpm start`. Deployed on Vercel (functions in `gru1`), with the
-backend on an Oracle VM behind Nginx and HTTPS (Let's Encrypt) at `https://krypto.duckdns.org`.
+backend on an Oracle VM behind Nginx and HTTPS (Let's Encrypt) at `https://krypto-bot.duckdns.org`.
 When Nginx answers 502/503/504 without JSON, the proxy turns it into `BACKEND_OFFLINE` /
 `BACKEND_TIMEOUT`, so the dashboard shows the "backend offline" notice.
 
