@@ -99,6 +99,32 @@ describe("backend proxy", () => {
     expect(fetchMock.mock.calls[0][0]).toBe("https://krypto.duckdns.org/health");
   });
 
+  it.each([
+    [502, 502, "BACKEND_OFFLINE"],
+    [503, 503, "BACKEND_OFFLINE"],
+    [504, 504, "BACKEND_TIMEOUT"],
+  ])("maps a non-JSON %i from the gateway to %i %s", async (upstreamStatus, status, error) => {
+    fetchMock.mockResolvedValueOnce(
+      new Response("<html><body>502 Bad Gateway</body></html>", { status: upstreamStatus, headers: { "content-type": "text/html" } }),
+    );
+    const { GET } = await loadRoute({ API_URL: "http://bot:9000" });
+    const res = await GET(new NextRequest("http://painel/api/backend/trades"), ctx("trades"));
+    expect(res.status).toBe(status);
+    expect(res.headers.get("content-type")).toMatch(/application\/json/);
+    expect(await res.json()).toMatchObject({ statusCode: status, error });
+  });
+
+  it("passes the JSON 503 from /health through untouched", async () => {
+    const health = { status: "down", uptimeSeconds: 10, mongo: { ok: false, latencyMs: null }, redis: { ok: true, latencyMs: 1, status: "ready" } };
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify(health), { status: 503, headers: { "content-type": "application/json; charset=utf-8" } }),
+    );
+    const { GET } = await loadRoute({ API_URL: "http://bot:9000" });
+    const res = await GET(new NextRequest("http://painel/api/backend/health"), ctx("health"));
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual(health);
+  });
+
   it("passes backend error statuses through", async () => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ statusCode: 404, message: "Trade x not found" }), { status: 404 }));
     const { GET } = await loadRoute({ API_URL: "http://bot:9000" });
