@@ -8,7 +8,8 @@ import { useHealth } from "@/hooks/use-data";
 import { useNow } from "@/hooks/use-now";
 import { loopHealth, pauseReasonLabel } from "@/lib/bot-health";
 import { formatDateTime, formatDuration, formatRelative } from "@/lib/format";
-import type { BotStatus } from "@/lib/schemas";
+import { ApiError } from "@/lib/api/client";
+import { type BotStatus, healthSchema } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { BotControls } from "./bot-controls";
 
@@ -42,13 +43,17 @@ function Service({ name, ok, latencyMs, down }: { name: string; ok: boolean; lat
   );
 }
 
-/** /health: Mongo is required; Redis is only a cache (reports keep working without it, slower). */
+/**
+ * /health: Mongo is required; Redis is only a cache (reports keep working without it, slower).
+ * When a dependency is down the backend answers 503 with the same JSON, so read it from the error.
+ */
 function ServicesHealth() {
   const health = useHealth();
-  if (!health.data) {
+  const data = health.data ?? (health.error instanceof ApiError ? healthSchema.safeParse(health.error.details).data : undefined);
+  if (!data) {
     return <span className="text-muted-foreground">{health.isError ? "Não foi possível verificar" : "Verificando…"}</span>;
   }
-  const { mongo, redis } = health.data;
+  const { mongo, redis } = data;
   return (
     <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
       <Service name="MongoDB" ok={mongo.ok} latencyMs={mongo.latencyMs} down="fora do ar" />

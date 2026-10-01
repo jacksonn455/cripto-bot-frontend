@@ -102,6 +102,22 @@ describe("BotStatusPanel", () => {
     expect(screen.getByText(/limite de perda diária atingido/i)).toBeInTheDocument();
     expect(screen.queryByText(/loop possivelmente parado/i)).not.toBeInTheDocument();
   });
+
+  it("shows which dependency is down when /health answers 503 with details", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-29T12:05:30.000Z"));
+    const api = mockApi([
+      {
+        path: "health",
+        status: 503,
+        body: { status: "down", uptimeSeconds: 10, mongo: { ok: false, latencyMs: null }, redis: { ok: true, latencyMs: 2, status: "ready" } },
+      },
+    ]);
+    vi.stubGlobal("fetch", api.fetchMock);
+    renderWithProviders(<BotStatusPanel status={status} />);
+    expect(await screen.findByText(/MongoDB: fora do ar/)).toBeInTheDocument();
+    expect(screen.getByText(/Redis \(cache\) OK/)).toBeInTheDocument();
+  });
 });
 
 describe("OpenPositions", () => {
