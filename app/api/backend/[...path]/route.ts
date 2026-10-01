@@ -58,8 +58,17 @@ async function proxy(request: NextRequest, ctx: Ctx, allowed: RegExp[]) {
     return errorResponse(404, "NOT_PROXIED", "Endpoint não disponível pelo painel.");
   }
 
+  let apiUrl: string;
+  try {
+    apiUrl = serverEnv.apiUrl;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[proxy] ${message}`);
+    return errorResponse(500, "CONFIG_MISSING", message);
+  }
+
   const isStream = path === "events/stream";
-  const target = `${serverEnv.apiUrl}/${path}${request.nextUrl.search}`;
+  const target = `${apiUrl}/${path}${request.nextUrl.search}`;
 
   const headers = new Headers({ accept: request.headers.get("accept") ?? "application/json" });
   if (serverEnv.apiKey) headers.set("x-control-api-key", serverEnv.apiKey);

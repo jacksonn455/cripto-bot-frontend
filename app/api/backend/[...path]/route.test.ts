@@ -85,6 +85,20 @@ describe("backend proxy", () => {
     expect(await res.json()).toMatchObject({ error: "BACKEND_OFFLINE" });
   });
 
+  it("answers 500 CONFIG_MISSING in production without an https API_URL", async () => {
+    const { GET } = await loadRoute({ VERCEL_ENV: "production", API_URL: "http://bot:9000" });
+    const res = await GET(new NextRequest("http://painel/api/backend/bot/status"), ctx("bot/status"));
+    expect(res.status).toBe(500);
+    expect(await res.json()).toMatchObject({ error: "CONFIG_MISSING", message: "CONFIG_MISSING: API_URL não configurada ou não é https" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("uses the https API_URL in production", async () => {
+    const { GET } = await loadRoute({ VERCEL_ENV: "production", API_URL: "https://krypto.duckdns.org" });
+    await GET(new NextRequest("http://painel/api/backend/health"), ctx("health"));
+    expect(fetchMock.mock.calls[0][0]).toBe("https://krypto.duckdns.org/health");
+  });
+
   it("passes backend error statuses through", async () => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ statusCode: 404, message: "Trade x not found" }), { status: 404 }));
     const { GET } = await loadRoute({ API_URL: "http://bot:9000" });
