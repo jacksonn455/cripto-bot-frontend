@@ -83,6 +83,8 @@ export const backtestRunResponseSchema = z.object({
   exposurePct: opt(z.number()),
   riskAdjusted: opt(riskAdjustedSchema),
   engineVersion: opt(z.number().int()),
+  /** Candidate-ledger rows stored for the run (only when it ran with recordCandidates). */
+  candidatesRecorded: opt(z.number().int()),
 });
 export type BacktestRunResponse = z.infer<typeof backtestRunResponseSchema>;
 
@@ -227,6 +229,11 @@ export interface RunBacktestInput {
   walkForward?: { testWindowDays: number };
   /** Overrides for GET /strategies params; only changed ones need to be sent. */
   strategyParams?: Record<string, number>;
+  /**
+   * Also store the run's candidate ledger (every triggered setup, accepted or rejected, with its
+   * shadow outcome). Observability only: trades and metrics are identical either way.
+   */
+  recordCandidates?: boolean;
 }
 
 /** GET /strategies. */

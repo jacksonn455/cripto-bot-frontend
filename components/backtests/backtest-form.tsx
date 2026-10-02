@@ -86,6 +86,7 @@ export function BacktestForm({ strategies }: { strategies: Strategies }) {
       stopSlippagePct: "",
       portfolioMode: false,
       maxSameSideRiskPct: "",
+      recordCandidates: false,
       params: {},
     };
   });
@@ -230,6 +231,25 @@ export function BacktestForm({ strategies }: { strategies: Strategies }) {
             <span className="text-xs text-muted-foreground">
               Taxa, slippage e slippage do stop (o dobro da entrada) multiplicados. Uma estratégia robusta mantém profit factor acima de 1 com custos 2×.
             </span>
+          </div>
+
+          <div className="rounded-lg border p-3">
+            <label htmlFor="recordCandidates" className="flex max-w-xl cursor-pointer items-start gap-2 text-sm">
+              <input
+                id="recordCandidates"
+                type="checkbox"
+                checked={values.recordCandidates === true}
+                onChange={(e) => set("recordCandidates", e.target.checked)}
+                className="mt-0.5 size-4 accent-primary"
+              />
+              <span>
+                <span className="font-medium">Registrar candidatos</span>
+                <span className="block text-xs text-muted-foreground">
+                  Guarda todas as oportunidades da execução, aprovadas ou barradas, com a etapa em que pararam e o resultado
+                  sombra (o que teriam feito se operadas). Aparece como funil no detalhe da execução. Não muda trades nem métricas.
+                </span>
+              </span>
+            </label>
           </div>
 
           <div className="flex flex-wrap items-start gap-4 rounded-lg border p-3">

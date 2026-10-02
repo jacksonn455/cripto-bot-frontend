@@ -30,6 +30,8 @@ export interface BacktestFormValues {
   portfolioMode: boolean;
   /** Portfolio mode only: max summed risk on the same side, in percent of the balance; "" = no cap. */
   maxSameSideRiskPct: string;
+  /** Store the candidate ledger of the run (optional; older forms/tests may omit it). */
+  recordCandidates?: boolean;
   /** Raw inputs by param key; "" = keep the configured value. */
   params: Record<string, string>;
 }
@@ -141,6 +143,7 @@ export function buildBacktestInput(
       ...(v.portfolioMode ? { portfolioMode: true } : {}),
       ...(maxSameSideRisk !== undefined ? { maxSameSideRiskPct: maxSameSideRisk } : {}),
       ...(Object.keys(strategyParams).length ? { strategyParams } : {}),
+      ...(v.recordCandidates ? { recordCandidates: true } : {}),
     },
   };
 }

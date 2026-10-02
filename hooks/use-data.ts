@@ -4,6 +4,7 @@ import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/endpoints";
 import { POLL_MS, queryKeys } from "@/lib/query";
 import type {
+  CandidateFilter,
   CandlesQuery,
   EquityCurveFilter,
   FundingQuery,
@@ -122,6 +123,24 @@ export function useFundingRanking(q: FundingQuery) {
     queryFn: ({ signal }) => api.funding.ranking(q, signal),
     refetchInterval: 5 * 60_000,
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useCandidateFunnel(f: CandidateFilter, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: ["candidates", "funnel", f],
+    queryFn: ({ signal }) => api.candidates.funnel(f, signal),
+    refetchInterval: POLL_MS.default,
+    placeholderData: keepPreviousData,
+    enabled: options.enabled,
+  });
+}
+
+export function usePauseImpact() {
+  return useQuery({
+    queryKey: ["candidates", "pauses"],
+    queryFn: ({ signal }) => api.candidates.pauses(signal),
+    refetchInterval: POLL_MS.default,
   });
 }
 

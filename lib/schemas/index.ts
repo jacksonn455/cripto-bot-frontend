@@ -7,3 +7,4 @@ export * from "./market";
 export * from "./events";
 export * from "./signals";
 export * from "./ai";
+export * from "./candidates";

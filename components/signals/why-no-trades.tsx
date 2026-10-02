@@ -27,7 +27,7 @@ import {
 import { priceDigits } from "@/lib/trades";
 import { cn } from "@/lib/utils";
 
-/** The live loop evaluates on the last emaRegime + 10 closed candles (ExecutionService.runCycle). */
+/** The live loop and the backtest evaluate on the last emaRegime + 10 closed candles (backend strategy-window.ts). */
 const LOOKBACK_MARGIN = 10;
 const pct = (v: number) => `${formatNumber(Math.abs(v) * 100, 2)}%`;
 const price = (v: number) => formatNumber(v, priceDigits(v));

@@ -9,6 +9,9 @@ import {
   balancesSchema,
   botStateSchema,
   botStatusSchema,
+  candidateFunnelSchema,
+  pauseImpactsSchema,
+  type CandidateFilter,
   byHourSchema,
   candlesSchema,
   compareModesSchema,
@@ -44,6 +47,13 @@ export const api = {
     pause: (reason?: string) => apiPost(botStateSchema, "bot/pause", reason ? { reason } : {}),
     resume: () => apiPost(botStateSchema, "bot/resume"),
     killSwitch: () => apiPost(killSwitchResultSchema, "bot/kill-switch"),
+  },
+  /** Candidate ledger (observability only). Older backends: 404 → callers show "indisponível". */
+  candidates: {
+    funnel: (f: CandidateFilter, signal?: AbortSignal) =>
+      apiGet(candidateFunnelSchema, "candidates/funnel", f as QueryParams, signal),
+    /** Pause episodes with the entries each one blocked. */
+    pauses: (signal?: AbortSignal) => apiGet(pauseImpactsSchema, "candidates/pauses", undefined, signal),
   },
   trades: {
     list: (query: TradesQuery, signal?: AbortSignal) => apiGet(tradesPageSchema, "trades", query as QueryParams, signal),
