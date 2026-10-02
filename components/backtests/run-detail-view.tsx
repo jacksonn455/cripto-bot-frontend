@@ -8,6 +8,7 @@ import { ModeComparison } from "@/components/analytics/mode-comparison";
 import { SideComparison } from "@/components/analytics/side-comparison";
 import { EquityChart } from "@/components/charts/equity-chart";
 import { PageHeader } from "@/components/layout/page-header";
+import { CandidateFunnel } from "@/components/signals/candidate-funnel";
 import { ModeBadge } from "@/components/mode/mode-badge";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
@@ -174,6 +175,8 @@ function RunDetail({ run }: { run: BacktestRun }) {
         )}
 
         <ModeComparison period={{}} runId={run.runId} />
+
+        <CandidateFunnel runId={run.runId} />
 
         <section className="space-y-3" aria-labelledby="bt-trades">
           <h2 id="bt-trades" className="text-lg font-semibold">Trades simuladas</h2>

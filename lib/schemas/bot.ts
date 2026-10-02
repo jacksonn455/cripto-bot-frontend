@@ -69,6 +69,9 @@ export const botStatusSchema = z.object({
   mode: z.enum(["PAPER", "LIVE"]),
   paused: z.boolean(),
   pauseReason: opt(z.string()),
+  /** While paused: when the pause started and how long it has lasted. Absent on older backends. */
+  pausedAt: opt(isoDate),
+  pausedForMs: opt(z.number()),
   lastReconciliationAt: opt(isoDate),
   lastReconciliationOk: z.boolean(),
   /** Last new closed candle evaluated — moves once per strategy timeframe (e.g. hourly on 1h). */
@@ -93,6 +96,7 @@ export type BotStatus = z.infer<typeof botStatusSchema>;
 export const botStateSchema = z.object({
   isPaused: z.boolean(),
   pauseReason: opt(z.string()),
+  pausedAt: opt(isoDate),
   lastReconciliationAt: opt(isoDate),
   lastReconciliationOk: z.boolean(),
   updatedAt: isoDate,

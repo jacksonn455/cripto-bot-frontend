@@ -1,6 +1,8 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { WorkerStatusCard } from "@/components/overview/worker-status";
+import { CandidateFunnel } from "@/components/signals/candidate-funnel";
 import { LiveFeed } from "@/components/signals/live-feed";
+import { PauseHistory } from "@/components/signals/pause-history";
 import { SignalsList } from "@/components/signals/signals-list";
 import { WhyNoTrades } from "@/components/signals/why-no-trades";
 
@@ -13,6 +15,8 @@ export default function Page() {
       <div className="space-y-6">
         <WorkerStatusCard />
         <WhyNoTrades />
+        <CandidateFunnel />
+        <PauseHistory />
         <LiveFeed />
         <SignalsList />
       </div>

@@ -89,6 +89,12 @@ export function BotStatusPanel({ status }: { status: BotStatus }) {
               <span className="inline-flex flex-wrap items-center gap-1.5 font-medium text-warning">
                 <CirclePause className="size-4" aria-hidden /> Pausado
                 <span className="font-normal text-foreground">· {pauseReasonLabel(status.pauseReason)}</span>
+                {status.pausedAt && (
+                  <span className="font-normal text-muted-foreground">
+                    · há {formatDuration(Math.max(0, now - Date.parse(status.pausedAt)))} (desde {formatDateTime(status.pausedAt)}) ·
+                    novas entradas bloqueadas até retomar
+                  </span>
+                )}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 font-medium text-profit">
